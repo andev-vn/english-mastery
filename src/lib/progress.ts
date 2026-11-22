@@ -62,7 +62,7 @@ export interface AchievementStatus {
 
 export function achievementStatuses(snap: ProgressSnapshot): AchievementStatus[] {
   return achievements.map((definition) => {
-    const value = definition.measure(snap);
+    const value = snap[definition.metric];
     return { definition, value: Math.min(value, definition.goal), unlocked: value >= definition.goal };
   });
 }

@@ -5,8 +5,9 @@
 A mobile-first, installable (PWA) English learning app for Vietnamese learners, following the CEFR scale (A1 → C2).
 Free-first: the core learning experience needs no paid service and no AI key.
 
-> Status: **Phase 1 complete** — the app runs fully in the browser in guest mode (progress stored on the device).
-> Supabase accounts/sync, placement test, listening/speaking/writing and the optional AI tutor are upcoming phases.
+> Status: **Phase 2 code complete.** The app runs fully in guest mode. With Supabase configured, it adds accounts
+> (sign-up, login, password reset) and a synced profile. Progress sync, placement test, listening/speaking/writing and the
+> optional AI tutor are upcoming phases.
 > See [docs/DEVELOPMENT_ROADMAP.md](docs/DEVELOPMENT_ROADMAP.md).
 
 ## What works today
@@ -23,6 +24,7 @@ Free-first: the core learning experience needs no paid service and no AI key.
 | Progress | XP (meaningful actions only), XP levels, streaks, weekly stats, achievements, exercise history |
 | Settings | Light / dark / system theme, daily goal, translations toggle, level, name, install app, reset data |
 | PWA | Installable, offline app shell + content, update prompt, offline indicator |
+| Accounts (optional) | Supabase Auth: register with email confirmation, login, logout, forgot/reset password, account page; profile synced across devices |
 
 Seed content: 13 lessons across 10 modules (A1–C2, including Developer English), 39 vocabulary entries, 13 exercises / 58 questions.
 This is a representative starter curriculum, not a complete CEFR course.
@@ -36,7 +38,8 @@ npm install
 npm run dev            # http://localhost:5173
 ```
 
-No environment variables are needed for Phase 1. See [.env.example](.env.example) for upcoming ones.
+No environment variables are needed for guest mode. To enable accounts, create `.env.local` from
+[.env.example](.env.example) and set up the database. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#supabase).
 
 ## Scripts
 
@@ -50,12 +53,14 @@ No environment variables are needed for Phase 1. See [.env.example](.env.example
 | `npm test` | Unit + component tests (Vitest) |
 | `npm run test:e2e` | End-to-end tests (Playwright, 360 px mobile + desktop). First run: `npx playwright install chromium` |
 | `npm run icons` | Regenerate PWA PNG icons from the brand mark |
+| `npm run db:seed:generate` | Regenerate `supabase/seed.sql` from `src/data` |
+| `npm run db:link` / `db:push` / `db:types` | Link a Supabase project, apply migrations + seed, regenerate DB types |
 
 ## Tech stack
 
 React 19 · TypeScript 6 (strict) · Vite 8 · Tailwind CSS 4 · React Router 8 · TanStack Query 5 · Zustand 5 ·
 React Hook Form + Zod 4 · Lucide · vite-plugin-pwa (Workbox) · Vitest 5 · Testing Library · Playwright.
-Planned: Supabase (Postgres, Auth, Edge Functions), Dexie (IndexedDB), Cloudflare Pages.
+Supabase (Postgres + RLS, Auth); PGlite for database tests. Planned: Dexie (IndexedDB), Edge Functions, Cloudflare Pages.
 
 ## Documentation
 

@@ -1,64 +1,84 @@
-# Database (planned — Phase 2)
+# Database
 
-> Not implemented yet. Phase 1 stores guest progress in the browser. This document is the design the Phase 2
-> migrations (`supabase/migrations/*.sql`) will implement. The TypeScript model in `src/types` already mirrors it.
+Supabase Postgres. Schema: [`supabase/migrations/20261123000000_initial_schema.sql`](../supabase/migrations/20261123000000_initial_schema.sql).
+Seed: [`supabase/seed.sql`](../supabase/seed.sql), **generated** from `src/data` with `npm run db:seed:generate`. Don't edit it by hand.
 
-Engine: Supabase Postgres. UUID primary keys (`gen_random_uuid()`) for user data; stable text slugs
-(e.g. `l-a1-greetings`) for published content so seed data and offline caches stay referentially stable.
-All timestamps are `timestamptz`.
+## Conventions
+
+- Published content uses stable text slugs as primary keys (`l-a1-greetings`, `v-deadline`). Question ids are `<exercise_id>:<key>`.
+- User data uses `uuid` keys and references `profiles` (→ `auth.users`, `on delete cascade`).
+- All timestamps are `timestamptz`. `updated_at` is maintained by triggers.
+- Enumerations use `check` constraints, so adding a value is a single migration.
 
 ## Tables
 
-### Users
-- **profiles** (`id uuid pk → auth.users`, `display_name`, `cefr_level`, `goal`, `daily_goal_minutes`, `explanation_language`, `created_at`, `updated_at`)
+| Group | Table | Key | Notes |
+| --- | --- | --- | --- |
+| Structure | `cefr_levels` | `id` A1…C2 | Rows created in the migration (FK target) |
+| | `modules` | slug | `category` general/grammar/vocabulary/developer; `unique(level_id, sort_order)` |
+| | `lessons` | slug | Composite FK `(module_id, level_id)` keeps the lesson level equal to its module's level |
+| | `lesson_contents` | uuid | `block jsonb` with a validated `type`; `unique(lesson_id, position)` |
+| | `grammar_topics` | slug | Optional link to a lesson |
+| Vocabulary | `vocabulary_topics`, `vocabulary` | slug | `unique(lower(word), part_of_speech)` |
+| | `user_vocabulary` | `(user_id, vocabulary_id)` | SM-2 state: repetitions ≥ 0, 1.3 ≤ ease ≤ 5, interval ≥ 0, lapses, favourite, `next_review_at` |
+| Exercises | `exercises`, `questions`, `answer_options` | slug / text / uuid | `questions.type` is one of the 7 engine types; type-specific data lives in `payload jsonb` |
+| | `user_answers` | uuid | Raw answer log per attempt |
+| Users | `profiles` | `id` = `auth.users.id` | display_name ≤ 40, cefr_level, goal, explanation_language, onboarded |
+| | `learning_goals` | `user_id` | `daily_minutes` 1–240 |
+| | `learning_streaks` | `user_id` | `best_streak ≥ current_streak ≥ 0` |
+| Progress | `user_lessons` | `(user_id, lesson_id)` | status in_progress/completed, 0–100 %, completed ⇒ `completed_at` set and 100 % |
+| | `study_sessions` | uuid | duration 0–86400 s, xp ≥ 0, score 0–100, **`client_op_id` unique** (idempotent sync) |
+| Assessment | `assessments`, `assessment_questions`, `assessment_results` | | Estimated level + per-skill scores |
+| Gamification | `achievements`, `user_achievements` | | `metric` + `goal` mirror `src/data/achievements.ts` |
+| AI | `ai_conversations`, `ai_messages` | uuid | Composite FK `(conversation_id, user_id)` so a message always belongs to its owner's conversation |
 
-### Learning structure (published content)
-- **cefr_levels** (`id text pk check in ('A1'…'C2')`, `name`, `name_vi`, `description`, `sort_order`)
-- **modules** (`id text pk`, `level_id → cefr_levels`, `title`, `title_vi`, `description`, `category check in ('general','grammar','vocabulary','developer')`, `sort_order`, `is_published`)
-- **lessons** (`id text pk`, `module_id → modules`, `level_id`, `title`, `title_vi`, `description`, `objectives text[]`, `estimated_minutes int check > 0`, `sort_order`, `is_published`)
-- **lesson_contents** (`id uuid pk`, `lesson_id → lessons`, `position int`, `block jsonb` — validated `type` in heading/text/grammar/example/mistake/tip/vocabulary/exercise/image/audio; unique `(lesson_id, position)`)
-- **grammar_topics** (`id text pk`, `level_id`, `title`, `title_vi`, `lesson_id → lessons null`)
-
-### Vocabulary
-- **vocabulary_topics** (`id text pk`, `name`, `name_vi`)
-- **vocabulary** (`id text pk`, `word`, `ipa`, `part_of_speech`, `level_id`, `topic_id → vocabulary_topics`, `definition`, `meaning_vi`, `example`, `example_vi`, `synonyms text[]`, `antonyms text[]`, `collocations text[]`, `audio_path null`)
-- **user_vocabulary** (`user_id → profiles`, `vocabulary_id → vocabulary`, `repetitions int ≥ 0`, `ease_factor numeric ≥ 1.3`, `interval_days int ≥ 0`, `lapses int ≥ 0`, `last_reviewed_at`, `next_review_at`, `is_favorite`, `updated_at`; **unique (user_id, vocabulary_id)**)
-
-### Exercises
-- **exercises** (`id text pk`, `level_id`, `skill`, `title`, `title_vi`, `description`, `estimated_minutes`)
-- **questions** (`id text pk`, `exercise_id → exercises`, `position`, `type check in (multiple_choice, true_false, fill_blank, matching, ordering, error_correction, translation)`, `prompt`, `context`, `payload jsonb`, `explanation_vi`)
-- **answer_options** (`id uuid pk`, `question_id → questions`, `label`, `text`, `is_correct`)
-- **user_answers** (`id uuid pk`, `user_id`, `question_id`, `attempt_id`, `answer jsonb`, `is_correct`, `created_at`)
-
-### Progress
-- **user_lessons** (`user_id`, `lesson_id`, `status check in ('in_progress','completed')`, `progress_percent int check 0..100`, `completed_at`, `updated_at`; **unique (user_id, lesson_id)**)
-- **study_sessions** (`id uuid pk`, `user_id`, `kind`, `ref_id`, `duration_seconds int ≥ 0`, `xp int ≥ 0`, `score int check 0..100 null`, `client_op_id uuid unique` (idempotent sync), `created_at`)
-- **learning_goals** (`user_id pk`, `daily_minutes int > 0`, `updated_at`)
-- **learning_streaks** (`user_id pk`, `current int ≥ 0`, `best int ≥ 0`, `last_active_date date`)
-
-### Assessment
-- **assessments**, **assessment_questions**, **assessment_results** (`user_id`, `assessment_id`, `estimated_level`, `skill_scores jsonb`, `created_at`)
-
-### Gamification
-- **achievements** (`id text pk`, `title`, `description`, `metric`, `goal int > 0`)
-- **user_achievements** (`user_id`, `achievement_id`, `unlocked_at`; unique pair)
-
-### AI (optional)
-- **ai_conversations** (`id uuid pk`, `user_id`, `topic`, `created_at`)
-- **ai_messages** (`id uuid pk`, `conversation_id`, `role check in ('user','assistant')`, `content`, `created_at`)
+A new row in `auth.users` fires `handle_new_user()` (security definer), which creates the `profiles`,
+`learning_goals` and `learning_streaks` rows. The display name comes from sign-up metadata.
 
 ## Indexes
 
-`user_id` on every user table · `user_lessons(lesson_id)`, `user_lessons(completed_at)` ·
-`user_vocabulary(user_id, next_review_at)` (due-card queries) · `user_vocabulary(vocabulary_id)` ·
-`study_sessions(user_id, created_at)` · `ai_messages(conversation_id, created_at)` · content `sort_order` per parent.
+Every FK column used in lookups is indexed, plus `user_vocabulary(user_id, next_review_at)` for due cards,
+`user_lessons(user_id, completed_at)`, `study_sessions(user_id, created_at)`, `user_answers(user_id, created_at)`,
+`assessment_results(user_id, created_at)` and `ai_messages(conversation_id, created_at)`.
 
 ## Row Level Security
 
-- Enabled on **every** table.
-- User tables: `using (user_id = auth.uid())` for select/insert/update/delete (profiles: `id = auth.uid()`).
-- Published content: `select` for `anon` and `authenticated` where `is_published`; no insert/update/delete policies —
-  content changes only via migrations/seed run with the service role (never shipped to the browser).
-- XP/streak updates go through a `security definer` RPC that validates the activity (e.g. one completion XP per lesson),
-  so clients cannot write arbitrary XP.
-- Policies will be tested with SQL tests (`supabase test db`) using two users.
+RLS is enabled on **every** table.
+
+| Data | anon | authenticated |
+| --- | --- | --- |
+| Published content (levels, modules, lessons, blocks, vocabulary, exercises, questions, options, assessments, achievements) | read | read |
+| Unpublished content | – | – |
+| `profiles`, `learning_goals` | – | read/update **own** row (created by trigger) |
+| `user_lessons`, `user_vocabulary` | – | full CRUD on **own** rows |
+| `user_answers` | – | read/insert own |
+| `study_sessions`, `learning_streaks`, `user_achievements`, `assessment_results` | – | **read own only**. Writes come from validated security-definer functions (Phase 4), so clients cannot grant themselves XP |
+| `ai_conversations` | – | CRUD own |
+| `ai_messages` | – | read own; insert own **`role = 'user'`** only (assistant replies come from the Edge Function) |
+
+Content writes have no policy at all. They happen only through migrations and the seed, run by the project owner.
+The service-role key is never shipped to the browser, and `src/lib/env.ts` refuses to start with one.
+
+## Tests
+
+`supabase/tests/database.test.ts` runs the real migration and seed in an in-process Postgres (PGlite) with a
+small Supabase shim (`supabase/tests/supabase-shim.sql`: roles, `auth.users`, `auth.uid()`, default grants).
+No Docker is needed. It covers:
+
+- seed completeness and idempotency
+- the new-user trigger
+- RLS for guests and for two users (own data only; no client writes to XP, streaks or achievements; AI role restriction)
+- constraints (CEFR values, percentages, SRS bounds, statuses, durations, question types, lesson/module level match)
+- `client_op_id` idempotency and cascading account deletion
+
+Run them with `npm test`.
+
+## Workflow
+
+```bash
+npm run db:seed:generate   # after changing src/data
+npx supabase login         # once per machine (opens the browser)
+npm run db:link            # once: choose the project
+npm run db:push            # apply new migrations + seed to the linked project
+npm run db:types           # optional: regenerate src/services/supabase/database.types.ts
+```

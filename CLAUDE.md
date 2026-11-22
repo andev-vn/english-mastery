@@ -21,6 +21,9 @@ Mobile-first PWA for Vietnamese learners of English (CEFR A1–C2). Read `docs/A
 - XP is only for meaningful learning (see `src/lib/xp.ts`). Do not add XP for repeated/no-op actions.
 - No impure calls during render (`Date.now()`, `Math.random()`); use effects, handlers or `src/lib/date.ts` helpers.
 - AI features are optional and must go through a server-side function; never put provider keys in `VITE_*` vars.
+- Supabase is optional: everything must keep working when `getSupabase()` returns null (guest mode).
+  Only the publishable key may reach the browser. Schema changes = a new file in `supabase/migrations/`
+  plus a test in `supabase/tests/database.test.ts`; content changes go in `src/data`, then `npm run db:seed:generate`.
 - Never claim something works without running it.
 
 ## Commands
@@ -32,4 +35,5 @@ npm run lint
 npm test            # vitest
 npm run test:e2e    # playwright (builds + previews production)
 npm run build
+npm run db:seed:generate  # after editing src/data
 ```

@@ -42,9 +42,11 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   hint?: string;
   error?: string;
   leftIcon?: ReactNode;
+  /** Interactive element rendered inside the right edge (e.g. a show-password toggle). */
+  rightSlot?: ReactNode;
 }
 
-export function Input({ label, hint, error, leftIcon, className, id, ...props }: InputProps) {
+export function Input({ label, hint, error, leftIcon, rightSlot, className, id, ...props }: InputProps) {
   const autoId = useId();
   const inputId = id ?? autoId;
   return (
@@ -57,9 +59,10 @@ export function Input({ label, hint, error, leftIcon, className, id, ...props }:
           id={inputId}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
-          className={cn(controlBase, error ? 'border-danger' : 'border-border', leftIcon ? 'pl-11' : undefined, className)}
+          className={cn(controlBase, error ? 'border-danger' : 'border-border', leftIcon ? 'pl-11' : undefined, rightSlot ? 'pr-12' : undefined, className)}
           {...props}
         />
+        {rightSlot && <span className="absolute inset-y-0 right-0.5 flex items-center">{rightSlot}</span>}
       </div>
     </FieldShell>
   );

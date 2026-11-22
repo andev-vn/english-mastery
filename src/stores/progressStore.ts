@@ -21,8 +21,12 @@ export interface ProgressState {
   totalXp: number;
   xpByDay: Record<string, number>;
 
-  completeOnboarding: (profile: Omit<LearnerProfile, 'onboarded'>) => void;
-  updateProfile: (patch: Partial<Omit<LearnerProfile, 'onboarded'>>) => void;
+  completeOnboarding: (profile: Omit<LearnerProfile, 'onboarded' | 'updatedAt'>) => void;
+  updateProfile: (patch: Partial<Omit<LearnerProfile, 'onboarded' | 'updatedAt'>>) => void;
+  /** Replaces the profile with the account's version (after sign-in on another device). */
+  applyRemoteProfile: (profile: Omit<LearnerProfile, 'updatedAt'>, updatedAt: string) => void;
+  /** Records that the local profile now matches the server version. */
+  markProfileSynced: (updatedAt: string) => void;
   startLesson: (lessonId: string) => void;
   completeLesson: (lesson: { id: string; title: string; estimatedMinutes: number }) => number;
   recordExercise: (input: {
@@ -78,9 +82,13 @@ export const useProgressStore = create<ProgressState>()(
     (set, get) => ({
       ...initialData,
 
-      completeOnboarding: (profile) => set({ profile: { ...profile, onboarded: true } }),
+      completeOnboarding: (profile) => set({ profile: { ...profile, onboarded: true, updatedAt: new Date().toISOString() } }),
 
-      updateProfile: (patch) => set((s) => ({ profile: { ...s.profile, ...patch } })),
+      updateProfile: (patch) => set((s) => ({ profile: { ...s.profile, ...patch, updatedAt: new Date().toISOString() } })),
+
+      applyRemoteProfile: (profile, updatedAt) => set({ profile: { ...profile, updatedAt } }),
+
+      markProfileSynced: (updatedAt) => set((s) => ({ profile: { ...s.profile, updatedAt } })),
 
       startLesson: (lessonId) =>
         set((s) => {

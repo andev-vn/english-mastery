@@ -15,7 +15,7 @@ Browser (PWA)
 │   │   └── Zustand         → learner progress + settings (persisted locally)
 │   ├── Services            → repository interfaces (content now, progress/sync later)
 │   └── Service worker      → precached shell + content chunks (Workbox)
-└── (Phase 2+) Supabase: Postgres + RLS, Auth, Edge Functions (AI proxy)
+└── Supabase (optional): Postgres + RLS, Auth (PKCE), later Edge Functions (AI proxy)
 ```
 
 ## Source layout
@@ -47,7 +47,7 @@ src/
 | **Pure logic in `lib/`** | SRS, grading, XP and streak rules are unit-tested without React. |
 | **Native `<dialog>`** for Modal / Drawer / BottomSheet | Focus trap, Escape and inert background for free; no dialog library. |
 | **Data router + route `lazy`** | Route-level code splitting, error boundary per route tree, direct URL access works. |
-| **Guest mode first** | Phase 1 needs no account. A guard (`RequireOnboarding`) protects app routes; Phase 2 adds auth guards. |
+| **Guest mode first, accounts optional** | Everything works without an account. Supabase Auth adds a synced profile; `RequireAuth` protects account-only routes. Without Supabase config, the SDK is never loaded. |
 
 ## Routing
 
@@ -55,11 +55,13 @@ src/
 | --- | --- | --- |
 | `/` | – | Redirects to `/dashboard` or `/welcome` |
 | `/welcome`, `/onboarding` | Bare | Public |
+| `/login`, `/register`, `/forgot-password`, `/reset-password`, `/auth/callback` | Bare | Public; show an "accounts unavailable" state when Supabase isn't configured |
 | `/dashboard`, `/learning-path`, `/levels/:levelId`, `/modules/:moduleId`, `/practice`, `/vocabulary`, `/profile`, `/progress`, `/settings` | App (bottom nav / side rail) | Requires onboarding |
+| `/account` | App | Requires onboarding **and** sign-in (`RequireAuth` → `/login?redirect=…`) |
 | `/lessons/:lessonId`, `/practice/:exerciseId`, `/vocabulary/review` | Bare (focus mode) | Requires onboarding |
 | `*` | – | 404 page |
 
-Planned (later phases): `/login`, `/register`, `/placement-test`, `/grammar`, `/grammar/:topicId`, `/listening`, `/speaking`, `/reading`, `/writing`, `/assessments`.
+Planned (later phases): `/placement-test`, `/grammar`, `/grammar/:topicId`, `/listening`, `/speaking`, `/reading`, `/writing`, `/assessments`.
 They are intentionally not registered yet so the app has no placeholder screens.
 
 ## Progress rules
