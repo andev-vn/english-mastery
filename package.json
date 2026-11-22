@@ -20,7 +20,8 @@
     "db:seed:generate": "node scripts/generate-seed.mjs",
     "db:link": "supabase link",
     "db:push": "supabase db push --remote --include-seed",
-    "db:types": "supabase gen types typescript --remote > src/services/supabase/database.types.ts"
+    "db:types": "supabase gen types typescript --remote > src/services/supabase/database.types.ts",
+    "db:seed:push": "supabase db query --remote --yes -f supabase/seed.sql"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",

@@ -5,6 +5,7 @@
 import { achievements } from '../src/data/achievements';
 import { levels, modules } from '../src/data/curriculum';
 import { exercises } from '../src/data/exercises';
+import { grammarTopics } from '../src/data/grammar';
 import { lessons } from '../src/data/lessons';
 import { vocabulary, vocabularyTopics } from '../src/data/vocabulary';
 import type { Question } from '../src/types/content';
@@ -82,6 +83,7 @@ export function buildSeedSql(): string {
       lessons.map((l) => ({
         id: l.id, module_id: l.moduleId, level_id: l.levelId, title: l.title, title_vi: l.titleVi, description: l.description,
         objectives: l.objectives, estimated_minutes: l.estimatedMinutes, sort_order: l.order,
+        vocabulary_ids: l.vocabularyIds, exercise_ids: l.exerciseIds,
       })),
       ['id'],
     ),
@@ -94,6 +96,16 @@ export function buildSeedSql(): string {
       'lesson_contents',
       lessons.flatMap((l) => l.blocks.map((block, position) => ({ lesson_id: l.id, position, block: { json: block } }))),
       ['lesson_id', 'position'],
+    ),
+  );
+
+  parts.push(
+    upsert(
+      'grammar_topics',
+      grammarTopics.map((g) => ({
+        id: g.id, level_id: g.level, title: g.title, title_vi: g.titleVi, summary_vi: g.summaryVi, lesson_id: g.lessonId, sort_order: g.order,
+      })),
+      ['id'],
     ),
   );
 

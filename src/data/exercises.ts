@@ -1,6 +1,8 @@
 import type { Exercise } from '@/types/content';
+import { exercisesA1 } from './exercises-a1';
+import { exercisesA2 } from './exercises-a2';
 
-export const exercises: Exercise[] = [
+const baseExercises: Exercise[] = [
   {
     id: 'ex-a1-greetings',
     title: 'Greetings & Introductions',
@@ -707,3 +709,5 @@ export const exercises: Exercise[] = [
     ],
   },
 ];
+
+export const exercises: Exercise[] = [...baseExercises, ...exercisesA1, ...exercisesA2];

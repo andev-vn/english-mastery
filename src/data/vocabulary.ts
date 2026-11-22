@@ -1,4 +1,7 @@
-import type { VocabularyEntry, VocabularyTopic } from '@/types/content';
+import { CEFR_LEVELS, type VocabularyEntry, type VocabularyTopic } from '@/types/content';
+import { e } from './vocabularyEntry';
+import { vocabularyA1 } from './vocabulary-a1';
+import { vocabularyA2 } from './vocabulary-a2';
 
 export const vocabularyTopics: VocabularyTopic[] = [
   { id: 'greetings', name: 'Greetings', nameVi: 'Chào hỏi' },
@@ -9,19 +12,13 @@ export const vocabularyTopics: VocabularyTopic[] = [
   { id: 'work', name: 'Work', nameVi: 'Công việc' },
   { id: 'technology', name: 'Technology', nameVi: 'Công nghệ' },
   { id: 'feelings', name: 'Feelings & opinions', nameVi: 'Cảm xúc & quan điểm' },
+  { id: 'numbers-time', name: 'Numbers & time', nameVi: 'Số đếm & thời gian' },
+  { id: 'home-city', name: 'Home & city', nameVi: 'Nhà cửa & thành phố' },
+  { id: 'shopping', name: 'Shopping', nameVi: 'Mua sắm' },
+  { id: 'health', name: 'Health', nameVi: 'Sức khoẻ' },
 ];
 
-type Entry = Omit<VocabularyEntry, 'synonyms' | 'antonyms' | 'collocations'> &
-  Partial<Pick<VocabularyEntry, 'synonyms' | 'antonyms' | 'collocations'>>;
-
-const e = (entry: Entry): VocabularyEntry => ({
-  synonyms: [],
-  antonyms: [],
-  collocations: [],
-  ...entry,
-});
-
-export const vocabulary: VocabularyEntry[] = [
+const baseVocabulary: VocabularyEntry[] = [
   // ---------- A1 ----------
   e({ id: 'v-hello', word: 'hello', ipa: '/həˈləʊ/', partOfSpeech: 'phrase', level: 'A1', topic: 'greetings', definition: 'Used as a greeting when you meet someone.', meaningVi: 'xin chào', example: 'Hello, my name is Lan.', exampleVi: 'Xin chào, tên tôi là Lan.', synonyms: ['hi'], antonyms: ['goodbye'] }),
   e({ id: 'v-goodbye', word: 'goodbye', ipa: '/ˌɡʊdˈbaɪ/', partOfSpeech: 'phrase', level: 'A1', topic: 'greetings', definition: 'Used when you leave someone.', meaningVi: 'tạm biệt', example: 'Goodbye! See you tomorrow.', exampleVi: 'Tạm biệt! Hẹn gặp lại ngày mai.', synonyms: ['bye'], antonyms: ['hello'] }),
@@ -68,3 +65,10 @@ export const vocabulary: VocabularyEntry[] = [
   e({ id: 'v-ubiquitous', word: 'ubiquitous', ipa: '/juːˈbɪkwɪtəs/', partOfSpeech: 'adjective', level: 'C2', topic: 'technology', definition: 'Seeming to be everywhere at the same time.', meaningVi: 'có mặt khắp nơi', example: 'Smartphones have become ubiquitous.', exampleVi: 'Điện thoại thông minh đã trở nên phổ biến khắp nơi.', synonyms: ['omnipresent', 'pervasive'], antonyms: ['rare'] }),
   e({ id: 'v-equivocal', word: 'equivocal', ipa: '/ɪˈkwɪvəkl/', partOfSpeech: 'adjective', level: 'C2', topic: 'feelings', definition: 'Not clear or decided; open to more than one interpretation.', meaningVi: 'mơ hồ, nước đôi', example: 'His answer was deliberately equivocal.', exampleVi: 'Câu trả lời của anh ấy cố tình nước đôi.', synonyms: ['ambiguous'], antonyms: ['unequivocal', 'clear'] }),
 ];
+
+const levelOrder = (v: VocabularyEntry) => CEFR_LEVELS.indexOf(v.level);
+
+/** All entries ordered by CEFR level, then alphabetically (same order as content loaded from Supabase). */
+export const vocabulary: VocabularyEntry[] = [...baseVocabulary, ...vocabularyA1, ...vocabularyA2].sort(
+  (a, b) => levelOrder(a) - levelOrder(b) || a.word.localeCompare(b.word),
+);

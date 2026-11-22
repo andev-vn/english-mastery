@@ -35,7 +35,8 @@ with them anyway (`src/lib/env.ts`). Without these variables the app runs in gue
    VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
    ```
 3. Apply the schema and content, using either:
-   - the CLI: `npx supabase login`, then `npm run db:link`, then `npm run db:push` (CLI v3 targets the local stack unless `--remote` is passed; the script includes it); or
+   - the CLI: `npx supabase login`, then `npm run db:link`, then `npm run db:push` (CLI v3 targets the local stack unless `--remote` is passed; the script includes it). After content changes, run
+     `npm run db:seed:push`, because `db push` does not re-run a seed that was already applied; or
    - the dashboard: SQL Editor, paste and run the migration file, then `supabase/seed.sql`.
 4. **Authentication → URL Configuration**:
    - Site URL: your production URL (e.g. `https://english-mastery.pages.dev`), or `http://localhost:5173` while developing.

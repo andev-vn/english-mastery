@@ -1,6 +1,9 @@
-import type { Lesson } from '@/types/content';
+import { CEFR_LEVELS, type Lesson } from '@/types/content';
+import { modules } from './curriculum';
+import { lessonsA1 } from './lessons-a1';
+import { lessonsA2 } from './lessons-a2';
 
-export const lessons: Lesson[] = [
+const baseLessons: Lesson[] = [
   // ================= A1 · Hello & Introductions =================
   {
     id: 'l-a1-greetings',
@@ -331,3 +334,13 @@ export const lessons: Lesson[] = [
     ],
   },
 ];
+
+const moduleOrder = new Map(modules.map((m) => [m.id, m.order]));
+
+/** All lessons in curriculum order: level → module → lesson. */
+export const lessons: Lesson[] = [...baseLessons, ...lessonsA1, ...lessonsA2].sort(
+  (a, b) =>
+    CEFR_LEVELS.indexOf(a.levelId) - CEFR_LEVELS.indexOf(b.levelId) ||
+    (moduleOrder.get(a.moduleId) ?? 0) - (moduleOrder.get(b.moduleId) ?? 0) ||
+    a.order - b.order,
+);

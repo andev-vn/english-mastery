@@ -9,7 +9,8 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "types": [
-      "node"
+      "node",
+      "vite/client"
     ],
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
