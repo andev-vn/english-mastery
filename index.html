@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="vi" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>English Mastery</title>
+    <meta name="description" content="English Mastery — học tiếng Anh từ A1 đến C2 theo chuẩn CEFR: ngữ pháp, từ vựng, luyện tập và lộ trình cá nhân hoá." />
+    <meta name="theme-color" content="#5969E8" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <script>
+      try {
+        var t = JSON.parse(localStorage.getItem('em-settings') || '{}').state?.theme;
+        var dark = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>English Mastery cần JavaScript để hoạt động.</noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

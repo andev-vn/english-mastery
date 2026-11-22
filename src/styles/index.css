@@ -1,0 +1,154 @@
+@import './fonts.css';
+@import 'tailwindcss';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* ---------- Design tokens (see docs/DESIGN_SYSTEM.md) ---------- */
+:root {
+  --em-color-primary: #5969e8;
+  --em-color-primary-hover: #4a59d6;
+  --em-color-primary-soft: #eceefd;
+  --em-color-on-primary: #ffffff;
+  --em-color-secondary: #16b8a6;
+  --em-color-secondary-soft: #e3f7f4;
+  --em-color-bg: #f6f7fb;
+  --em-color-surface: #ffffff;
+  --em-color-surface-muted: #eff1f7;
+  --em-color-border: #e3e6ef;
+  --em-color-text: #20243a;
+  --em-color-text-muted: #8a91a5;
+  --em-color-text-subtle: #5d6479;
+  --em-color-success: #20b486;
+  --em-color-success-soft: #e2f6ef;
+  --em-color-warning: #f3a847;
+  --em-color-warning-soft: #fdf2e2;
+  --em-color-danger: #e65c68;
+  --em-color-danger-soft: #fce9eb;
+  --em-color-overlay: rgb(20 23 38 / 0.45);
+  --em-shadow-card: 0 1px 2px rgb(32 36 58 / 0.04), 0 1px 3px rgb(32 36 58 / 0.06);
+  --em-shadow-raised: 0 8px 24px rgb(32 36 58 / 0.12);
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --em-color-primary: #7c89f0;
+  --em-color-primary-hover: #919cf4;
+  --em-color-primary-soft: #262b4d;
+  --em-color-on-primary: #10132a;
+  --em-color-secondary: #2fcfbc;
+  --em-color-secondary-soft: #15332f;
+  --em-color-bg: #10121c;
+  --em-color-surface: #191c29;
+  --em-color-surface-muted: #222636;
+  --em-color-border: #2c3144;
+  --em-color-text: #eceef6;
+  --em-color-text-muted: #8a91a5;
+  --em-color-text-subtle: #b1b7c9;
+  --em-color-success: #3bcb9c;
+  --em-color-success-soft: #143229;
+  --em-color-warning: #f5b766;
+  --em-color-warning-soft: #382b17;
+  --em-color-danger: #f07883;
+  --em-color-danger-soft: #3a1d22;
+  --em-color-overlay: rgb(0 0 0 / 0.6);
+  --em-shadow-card: 0 0 0 1px rgb(255 255 255 / 0.02);
+  --em-shadow-raised: 0 8px 28px rgb(0 0 0 / 0.5);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: 'Inter Variable', 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --color-primary: var(--em-color-primary);
+  --color-primary-hover: var(--em-color-primary-hover);
+  --color-primary-soft: var(--em-color-primary-soft);
+  --color-on-primary: var(--em-color-on-primary);
+  --color-secondary: var(--em-color-secondary);
+  --color-secondary-soft: var(--em-color-secondary-soft);
+  --color-bg: var(--em-color-bg);
+  --color-surface: var(--em-color-surface);
+  --color-surface-muted: var(--em-color-surface-muted);
+  --color-border: var(--em-color-border);
+  --color-text: var(--em-color-text);
+  --color-text-muted: var(--em-color-text-muted);
+  --color-text-subtle: var(--em-color-text-subtle);
+  --color-success: var(--em-color-success);
+  --color-success-soft: var(--em-color-success-soft);
+  --color-warning: var(--em-color-warning);
+  --color-warning-soft: var(--em-color-warning-soft);
+  --color-danger: var(--em-color-danger);
+  --color-danger-soft: var(--em-color-danger-soft);
+  --shadow-card: var(--em-shadow-card);
+  --shadow-raised: var(--em-shadow-raised);
+  --radius-card: 1.25rem;
+}
+
+/* ---------- Base ---------- */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-bg font-sans text-text antialiased;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+  :focus-visible {
+    outline: 2px solid var(--em-color-primary);
+    outline-offset: 2px;
+  }
+  dialog::backdrop {
+    background: var(--em-color-overlay);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+@keyframes em-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes em-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes em-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@utility animate-fade-up {
+  animation: em-fade-up 220ms ease-out both;
+}
+@utility animate-sheet-up {
+  animation: em-sheet-up 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@utility animate-slide-in {
+  animation: em-slide-in 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}

@@ -1,0 +1,76 @@
+# Architecture
+
+## Goals
+
+Mobile-first, fast, offline-capable, free to run. Core learning must work with **no backend and no AI**.
+
+## High level
+
+```
+Browser (PWA)
+├── React app (Vite build, served statically from Cloudflare Pages)
+│   ├── UI: features/* pages + components/* design system
+│   ├── State
+│   │   ├── TanStack Query  → read-only content (lessons, vocabulary, exercises)
+│   │   └── Zustand         → learner progress + settings (persisted locally)
+│   ├── Services            → repository interfaces (content now, progress/sync later)
+│   └── Service worker      → precached shell + content chunks (Workbox)
+└── (Phase 2+) Supabase: Postgres + RLS, Auth, Edge Functions (AI proxy)
+```
+
+## Source layout
+
+```
+src/
+  app/            router, providers, layouts (AppLayout, BareLayout), guards, error boundary, PWA prompt
+  components/
+    ui/           design-system primitives (Button, Field, Dialog, Tabs, Toast, Progress, States…)
+    learning/     domain components (LessonCard, VocabularyCard, ExerciseOption, AchievementCard, SpeakButton)
+  features/       one folder per area; each page is a lazily loaded route chunk
+    dashboard/ learn/ practice/ (engine/) vocabulary/ profile/ onboarding/
+  data/           seed learning content (typed TS modules, lazily imported)
+  lib/            pure logic: srs, grading, xp, progress selectors, date, speech, hooks
+  services/       ContentRepository + TanStack Query hooks
+  stores/         Zustand stores (progress, settings)
+  types/          domain model (content.ts, progress.ts)
+  styles/         Tailwind entry + design tokens + fonts
+```
+
+## Key decisions
+
+| Decision | Why |
+| --- | --- |
+| **Repository layer** (`services/contentRepository.ts`) | Pages never touch data sources. Phase 2 swaps in a Supabase implementation with local fallback without touching UI. |
+| **Content as lazily imported TS modules** | Type-checked seed data; code-split away from the app shell; precached for offline. Same shape as the planned DB rows. |
+| **TanStack Query for content, Zustand for progress** | Content is server-state-like (cacheable, read-only). Progress is local-first user state that must work offline. |
+| **Typed exercise model** (`types/content.ts` discriminated union) | One engine (`features/practice/engine`) renders and grades every question type; no per-question screens. |
+| **Pure logic in `lib/`** | SRS, grading, XP and streak rules are unit-tested without React. |
+| **Native `<dialog>`** for Modal / Drawer / BottomSheet | Focus trap, Escape and inert background for free; no dialog library. |
+| **Data router + route `lazy`** | Route-level code splitting, error boundary per route tree, direct URL access works. |
+| **Guest mode first** | Phase 1 needs no account. A guard (`RequireOnboarding`) protects app routes; Phase 2 adds auth guards. |
+
+## Routing
+
+| Path | Layout | Notes |
+| --- | --- | --- |
+| `/` | – | Redirects to `/dashboard` or `/welcome` |
+| `/welcome`, `/onboarding` | Bare | Public |
+| `/dashboard`, `/learning-path`, `/levels/:levelId`, `/modules/:moduleId`, `/practice`, `/vocabulary`, `/profile`, `/progress`, `/settings` | App (bottom nav / side rail) | Requires onboarding |
+| `/lessons/:lessonId`, `/practice/:exerciseId`, `/vocabulary/review` | Bare (focus mode) | Requires onboarding |
+| `*` | – | 404 page |
+
+Planned (later phases): `/login`, `/register`, `/placement-test`, `/grammar`, `/grammar/:topicId`, `/listening`, `/speaking`, `/reading`, `/writing`, `/assessments`.
+They are intentionally not registered yet so the app has no placeholder screens.
+
+## Progress rules
+
+- Lesson completion: +20 XP once per lesson.
+- Exercise: +5 XP per correct answer **above the previous best**, +10 for a first perfect score.
+- Flashcards: +2 XP per *due* card recalled; early reviews earn nothing.
+- Streak: a day counts when any study activity is recorded; the current streak survives until the end of the next day.
+- Lesson availability: levels ≤ learner level + 1 are open; higher levels unlock sequentially per module.
+
+## Error handling
+
+- Route-level `errorElement` (`app/RouteError.tsx`) — also explains failed chunk loads while offline.
+- Every data-driven page renders loading (skeleton), error (retry) and empty states.
