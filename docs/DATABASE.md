@@ -1,6 +1,9 @@
 # Database
 
-Supabase Postgres. Schema: [`supabase/migrations/20261123000000_initial_schema.sql`](../supabase/migrations/20261123000000_initial_schema.sql).
+Supabase Postgres. Migrations, in order:
+1. [`20261123000000_initial_schema.sql`](../supabase/migrations/20261123000000_initial_schema.sql): tables, constraints, indexes, triggers, RLS
+2. [`20261123010000_api_grants.sql`](../supabase/migrations/20261123010000_api_grants.sql): explicit least-privilege grants (new projects no longer expose tables automatically)
+3. [`20261123020000_content_references.sql`](../supabase/migrations/20261123020000_content_references.sql): `lessons.vocabulary_ids` / `exercise_ids`, `grammar_topics.summary_vi`
 Seed: [`supabase/seed.sql`](../supabase/seed.sql), **generated** from `src/data` with `npm run db:seed:generate`. Don't edit it by hand.
 
 ## Conventions
@@ -71,6 +74,12 @@ No Docker is needed. It covers:
 - constraints (CEFR values, percentages, SRS bounds, statuses, durations, question types, lesson/module level match)
 - `client_op_id` idempotency and cascading account deletion
 
+Also:
+- `supabase/tests/content-roundtrip.test.ts`: bundled content → seed → Postgres (read as `anon`) → `assembleDataset()`
+  must equal the bundled content.
+- `supabase/tests/learning-sync.test.ts`: the client's row mapping for `user_vocabulary` and `user_answers` against
+  the real schema.
+
 Run them with `npm test`.
 
 ## Workflow
@@ -79,6 +88,7 @@ Run them with `npm test`.
 npm run db:seed:generate   # after changing src/data
 npx supabase login         # once per machine (opens the browser)
 npm run db:link            # once: choose the project
-npm run db:push            # apply new migrations + seed to the linked project
+npm run db:push            # apply new migrations (and the seed on the first push)
+npm run db:seed:push       # re-run the idempotent seed after content changes (db push skips an already-applied seed)
 npm run db:types           # optional: regenerate src/services/supabase/database.types.ts
 ```

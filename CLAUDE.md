@@ -23,7 +23,9 @@ Mobile-first PWA for Vietnamese learners of English (CEFR A1–C2). Read `docs/A
 - AI features are optional and must go through a server-side function; never put provider keys in `VITE_*` vars.
 - Supabase is optional: everything must keep working when `getSupabase()` returns null (guest mode).
   Only the publishable key may reach the browser. Schema changes = a new file in `supabase/migrations/`
-  plus a test in `supabase/tests/database.test.ts`; content changes go in `src/data`, then `npm run db:seed:generate`.
+  plus a test in `supabase/tests/`, then `npm run db:push` and `npm run db:types`. Content changes go in `src/data`,
+  then `npm run db:seed:generate` and `npm run db:seed:push`. `database.types.ts` is generated: don't edit it.
+- Bundled content and database content must stay identical (`supabase/tests/content-roundtrip.test.ts`).
 - Never claim something works without running it.
 
 ## Commands

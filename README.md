@@ -5,9 +5,10 @@
 A mobile-first, installable (PWA) English learning app for Vietnamese learners, following the CEFR scale (A1 → C2).
 Free-first: the core learning experience needs no paid service and no AI key.
 
-> Status: **Phase 2 code complete.** The app runs fully in guest mode. With Supabase configured, it adds accounts
-> (sign-up, login, password reset) and a synced profile. Progress sync, placement test, listening/speaking/writing and the
-> optional AI tutor are upcoming phases.
+> Status: **Phase 3 complete.** The app runs fully in guest mode. With Supabase configured, it adds accounts, loads
+> published content from the database (bundled content as offline fallback), and syncs the profile, saved words /
+> spaced-repetition state and exercise answers. Placement test, listening/speaking/writing, the offline sync queue and
+> the optional AI tutor are upcoming phases.
 > See [docs/DEVELOPMENT_ROADMAP.md](docs/DEVELOPMENT_ROADMAP.md).
 
 ## What works today
@@ -17,6 +18,7 @@ Free-first: the core learning experience needs no paid service and no AI key.
 | Onboarding | Name, learning goal, self-assessed CEFR level, daily goal (validated with Zod) |
 | Dashboard | Greeting, level, streak, daily goal ring, continue learning, stats, reviews due, 7-day chart, recommendations, recent activity |
 | Learning path | 6 CEFR levels → modules → lessons with locked / available / in-progress / completed states |
+| Grammar | 23 topics by CEFR level with search; reference view (structures, examples, common mistakes) linked to practice and the full lesson |
 | Lessons | Objectives, grammar structures, examples with Vietnamese translations, common mistakes, tips, vocabulary, linked exercises, text-to-speech |
 | Exercise engine | Multiple choice, true/false, fill-in-the-blank, matching, sentence ordering, error correction, translation; reading passages; instant feedback with explanations; scoring; mistake review |
 | Vocabulary | Search (debounced), level/topic filters, saved/favourite/difficult lists, word details, pronunciation (browser TTS) |
@@ -26,8 +28,16 @@ Free-first: the core learning experience needs no paid service and no AI key.
 | PWA | Installable, offline app shell + content, update prompt, offline indicator |
 | Accounts (optional) | Supabase Auth: register with email confirmation, login, logout, forgot/reset password, account page; profile synced across devices |
 
-Seed content: 13 lessons across 10 modules (A1–C2, including Developer English), 39 vocabulary entries, 13 exercises / 58 questions.
-This is a representative starter curriculum, not a complete CEFR course.
+Content: 31 lessons in 13 modules, 183 vocabulary entries, 31 exercises / 151 questions, 23 grammar topics.
+
+| Level | Modules | Lessons | Words | Questions |
+| --- | --- | --- | --- | --- |
+| A1 | 5 | 15 | 114 | 77 |
+| A2 | 3 | 10 | 52 | 50 |
+| B1–C2 | 5 (samples, incl. Developer English) | 6 | 17 | 24 |
+
+A1 and A2 meet the initial targets from the spec (enforced by `src/data/content.test.ts`).
+This is a solid starter curriculum, not a complete CEFR course.
 
 ## Getting started
 
@@ -54,6 +64,7 @@ No environment variables are needed for guest mode. To enable accounts, create `
 | `npm run test:e2e` | End-to-end tests (Playwright, 360 px mobile + desktop). First run: `npx playwright install chromium` |
 | `npm run icons` | Regenerate PWA PNG icons from the brand mark |
 | `npm run db:seed:generate` | Regenerate `supabase/seed.sql` from `src/data` |
+| `npm run db:seed:push` | Run the (idempotent) seed against the linked project |
 | `npm run db:link` / `db:push` / `db:types` | Link a Supabase project, apply migrations + seed, regenerate DB types |
 
 ## Tech stack

@@ -4,27 +4,27 @@ The UI talks only to service modules. There is no custom backend server.
 
 ## Content (implemented)
 
-`src/services/contentRepository.ts`
+`src/services/contentRepository.ts`: `getLevels`, `getModules`, `getModule`, `getLessons`, `getLesson`,
+`getVocabulary`, `getVocabularyTopics`, `getExercises`, `getExercise`, `getGrammarTopics`.
 
-```ts
-interface ContentRepository {
-  getLevels(): Promise<LevelInfo[]>;
-  getModules(levelId?: CefrLevel): Promise<Module[]>;
-  getModule(moduleId: string): Promise<Module | undefined>;
-  getLessons(filter?: { moduleId?: string; levelId?: CefrLevel }): Promise<Lesson[]>;
-  getLesson(lessonId: string): Promise<Lesson | undefined>;
-  getVocabulary(): Promise<VocabularyEntry[]>;
-  getVocabularyTopics(): Promise<VocabularyTopic[]>;
-  getExercises(): Promise<Exercise[]>;
-  getExercise(exerciseId: string): Promise<Exercise | undefined>;
-}
-```
+Strategy: **bundled first, Supabase in the background.**
+1. Reads are served from the bundled dataset (`services/content/dataset.ts`, lazily imported, precached by the service worker).
+2. `ContentSync` (mounted in `App`) calls `refreshFromRemote()` once per session when the browser is idle. It loads all
+   published rows (`services/content/remoteDataset.ts`, paginated), converts them with `assembleDataset()` (which
+   validates enum columns and JSON payloads), and swaps the dataset in. Content queries are then invalidated;
+   unchanged data does not re-render thanks to TanStack Query's structural sharing.
+3. Offline, unconfigured, timeout (10 s), empty or malformed data: the bundled content stays.
 
-Current implementation: `localContentRepository` (bundled, lazily imported seed data).
-Phase 3: `supabaseContentRepository` reading published rows, falling back to the local dataset offline.
+React hooks (`src/services/contentQueries.ts`) all use query keys prefixed with `'content'`.
 
-React hooks (`src/services/contentQueries.ts`): `useLevels`, `useModules`, `useModule`, `useLessons`, `useLesson`,
-`useVocabulary`, `useVocabularyTopics`, `useExercises`, `useExercise` — TanStack Query, `staleTime: Infinity`.
+## Learning data sync (implemented)
+
+`src/services/learningSync.ts`, for signed-in users only:
+- `syncVocabularyOnSignIn(userId)`: merges `user_vocabulary` with local cards via `mergeVocabulary()`
+  (`src/lib/vocabularyMerge.ts`). The newest version of each word wins; local deletions are kept as tombstones so they
+  propagate to the server instead of being restored from it.
+- `watchVocabularyChanges(userId)`: debounced, batched upserts and deletes after each change.
+- `recordAnswers({ exerciseId, attemptId, results })`: inserts one `user_answers` row per question.
 
 ## Supabase client & auth (implemented)
 

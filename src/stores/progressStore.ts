@@ -15,6 +15,8 @@ export interface ProgressState {
   lessons: Record<string, LessonProgress>;
   attempts: ExerciseAttempt[];
   cards: Record<string, ReviewCard>;
+  /** Words removed on this device (wordId → ISO time), so a sync cannot bring them back. */
+  removedWords: Record<string, string>;
   activity: ActivityEntry[];
   /** Minutes studied per local day (YYYY-MM-DD). */
   studyDays: Record<string, number>;
@@ -41,6 +43,8 @@ export interface ProgressState {
   toggleFavorite: (wordId: string) => void;
   reviewWord: (wordId: string, grade: ReviewGrade) => number;
   finishReviewSession: (input: { reviewed: number; xp: number; durationSeconds: number }) => void;
+  /** Applies the result of merging with the account; `resolved` deletions are forgotten. */
+  applyMergedCards: (cards: Record<string, ReviewCard>, resolved: string[]) => void;
   resetProgress: () => void;
 }
 
@@ -52,6 +56,7 @@ const initialData = {
   lessons: {},
   attempts: [],
   cards: {},
+  removedWords: {},
   activity: [],
   studyDays: {},
   totalXp: 0,
@@ -150,18 +155,28 @@ export const useProgressStore = create<ProgressState>()(
       },
 
       saveWord: (wordId) =>
-        set((s) => (s.cards[wordId] ? s : { cards: { ...s.cards, [wordId]: createCard(wordId) } })),
+        set((s) => {
+          if (s.cards[wordId]) return s;
+          const now = new Date();
+          const { [wordId]: _tombstone, ...removedWords } = s.removedWords;
+          return { cards: { ...s.cards, [wordId]: { ...createCard(wordId, now), updatedAt: now.toISOString() } }, removedWords };
+        }),
 
       removeWord: (wordId) =>
         set((s) => {
           const { [wordId]: _removed, ...rest } = s.cards;
-          return { cards: rest };
+          return { cards: rest, removedWords: { ...s.removedWords, [wordId]: new Date().toISOString() } };
         }),
 
       toggleFavorite: (wordId) =>
         set((s) => {
-          const card = s.cards[wordId] ?? createCard(wordId);
-          return { cards: { ...s.cards, [wordId]: { ...card, favorite: !card.favorite } } };
+          const now = new Date();
+          const card = s.cards[wordId] ?? createCard(wordId, now);
+          const { [wordId]: _tombstone, ...removedWords } = s.removedWords;
+          return {
+            cards: { ...s.cards, [wordId]: { ...card, favorite: !card.favorite, updatedAt: now.toISOString() } },
+            removedWords,
+          };
         }),
 
       reviewWord: (wordId, grade) => {
@@ -169,7 +184,7 @@ export const useProgressStore = create<ProgressState>()(
         const now = new Date();
         const card = state.cards[wordId] ?? createCard(wordId, now);
         const wasDue = isDue(card, now);
-        const next = scheduleReview(card, grade, now);
+        const next = { ...scheduleReview(card, grade, now), updatedAt: now.toISOString() };
         // XP only for due cards recalled successfully — re-reviewing early earns nothing.
         const xp = wasDue && grade !== 'again' ? XP_PER_DUE_REVIEW : 0;
         set({ cards: { ...state.cards, [wordId]: next }, ...addStudy(state, 0, xp, now) });
@@ -191,6 +206,13 @@ export const useProgressStore = create<ProgressState>()(
         });
       },
 
+      applyMergedCards: (cards, resolved) =>
+        set((s) => {
+          const removedWords = { ...s.removedWords };
+          for (const wordId of resolved) delete removedWords[wordId];
+          return { cards, removedWords };
+        }),
+
       resetProgress: () => set({ ...initialData }),
     }),
     {
@@ -202,6 +224,7 @@ export const useProgressStore = create<ProgressState>()(
         lessons: s.lessons,
         attempts: s.attempts,
         cards: s.cards,
+        removedWords: s.removedWords,
         activity: s.activity,
         studyDays: s.studyDays,
         totalXp: s.totalXp,

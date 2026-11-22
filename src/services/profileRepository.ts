@@ -1,4 +1,5 @@
 import { requireSupabase } from '@/services/supabase/client';
+import { asCefrLevel, asLearningGoal } from '@/services/supabase/guards';
 import type { CefrLevel } from '@/types/content';
 import type { LearningGoal } from '@/types/progress';
 
@@ -31,8 +32,8 @@ export async function fetchProfile(userId: string): Promise<RemoteProfile | null
   if (!profile.data) return null;
   return {
     displayName: profile.data.display_name,
-    level: profile.data.cefr_level,
-    goal: profile.data.goal,
+    level: asCefrLevel(profile.data.cefr_level),
+    goal: asLearningGoal(profile.data.goal),
     onboarded: profile.data.onboarded,
     dailyGoalMinutes: goal.data?.daily_minutes ?? 15,
     updatedAt: profile.data.updated_at,

@@ -48,6 +48,18 @@ export interface Lesson {
   order: number;
 }
 
+/** A grammar reference entry. The explanation itself lives in the linked lesson. */
+export interface GrammarTopic {
+  id: string;
+  level: CefrLevel;
+  title: string;
+  titleVi: string;
+  /** One-line Vietnamese summary shown in the grammar index. */
+  summaryVi: string;
+  lessonId: string;
+  order: number;
+}
+
 export type PartOfSpeech =
   | 'noun'
   | 'verb'

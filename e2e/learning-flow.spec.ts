@@ -109,3 +109,15 @@ test('deep links work after onboarding and unknown routes show 404', async ({ pa
   await page.goto('/this-page-does-not-exist');
   await expect(page.getByText('Không tìm thấy trang')).toBeVisible();
 });
+
+test('grammar index links to a reference page with practice', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/grammar');
+  await page.getByRole('searchbox', { name: 'Tìm chủ điểm ngữ pháp' }).fill('so sánh');
+  await page.getByRole('link', { name: /So sánh hơn/ }).click();
+  await expect(page).toHaveURL(/\/grammar\/g-comparatives$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'So sánh hơn' })).toBeVisible();
+  await page.getByRole('link', { name: 'Luyện tập chủ điểm này' }).click();
+  await expect(page).toHaveURL(/\/practice\/ex-a2-comparatives$/);
+  await expect(page.getByRole('button', { name: 'Kiểm tra' })).toBeDisabled();
+});

@@ -2,19 +2,22 @@ import { useQuery } from '@tanstack/react-query';
 import type { CefrLevel } from '@/types/content';
 import { contentRepository } from './contentRepository';
 
-/** Published content changes rarely, so it is cached for the whole session. */
+/** Published content changes rarely: cache for the session; ContentSync invalidates after a remote refresh. */
 const STATIC = { staleTime: Infinity, gcTime: Infinity } as const;
 
+/** Every content query key starts with 'content' so a single invalidation refreshes all of them. */
 export const contentKeys = {
-  levels: ['levels'] as const,
-  modules: (levelId?: CefrLevel) => ['modules', levelId ?? 'all'] as const,
-  module: (id: string) => ['module', id] as const,
-  lessons: (filter: { moduleId?: string; levelId?: CefrLevel }) => ['lessons', filter] as const,
-  lesson: (id: string) => ['lesson', id] as const,
-  vocabulary: ['vocabulary'] as const,
-  vocabularyTopics: ['vocabulary-topics'] as const,
-  exercises: ['exercises'] as const,
-  exercise: (id: string) => ['exercise', id] as const,
+  all: ['content'] as const,
+  levels: ['content', 'levels'] as const,
+  modules: (levelId?: CefrLevel) => ['content', 'modules', levelId ?? 'all'] as const,
+  module: (id: string) => ['content', 'module', id] as const,
+  lessons: (filter: { moduleId?: string; levelId?: CefrLevel }) => ['content', 'lessons', filter] as const,
+  lesson: (id: string) => ['content', 'lesson', id] as const,
+  vocabulary: ['content', 'vocabulary'] as const,
+  vocabularyTopics: ['content', 'vocabulary-topics'] as const,
+  exercises: ['content', 'exercises'] as const,
+  exercise: (id: string) => ['content', 'exercise', id] as const,
+  grammarTopics: ['content', 'grammar-topics'] as const,
 };
 
 export const useLevels = () =>
@@ -43,3 +46,6 @@ export const useExercises = () =>
 
 export const useExercise = (id: string) =>
   useQuery({ queryKey: contentKeys.exercise(id), queryFn: () => contentRepository.getExercise(id).then((e) => e ?? null), ...STATIC });
+
+export const useGrammarTopics = () =>
+  useQuery({ queryKey: contentKeys.grammarTopics, queryFn: () => contentRepository.getGrammarTopics(), ...STATIC });

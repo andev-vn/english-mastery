@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { toast } from '@/components/ui/Toast';
 import { syncProfileOnSignIn, watchProfileChanges } from '@/services/accountSync';
+import { syncVocabularyOnSignIn, watchVocabularyChanges } from '@/services/learningSync';
 import { getSupabase } from '@/services/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -17,7 +18,7 @@ export function AuthSync() {
 
     const reportSyncError = (error: unknown) => {
       if (import.meta.env.DEV) console.error('[account sync]', error);
-      toast.error('Chưa đồng bộ được hồ sơ. Ứng dụng sẽ thử lại lần sau.');
+      toast.error('Chưa đồng bộ được dữ liệu với tài khoản. Ứng dụng sẽ thử lại lần sau.');
     };
 
     const onSession = (user: { id: string; email?: string | null } | null) => {
@@ -31,14 +32,19 @@ export function AuthSync() {
       // Defer: Supabase must not be called from inside its own auth callback.
       window.setTimeout(() => {
         if (cancelled) return;
-        syncProfileOnSignIn(user.id)
-          .catch(reportSyncError)
-          .finally(() => {
-            // Watch for later edits only after the initial reconcile, so a pulled profile is not pushed back.
-            if (cancelled || useAuthStore.getState().user?.id !== user.id) return;
-            stopWatching?.();
-            stopWatching = watchProfileChanges(user.id, reportSyncError);
-          });
+        void Promise.allSettled([syncProfileOnSignIn(user.id), syncVocabularyOnSignIn(user.id)]).then((results) => {
+          const failed = results.find((r) => r.status === 'rejected');
+          if (failed) reportSyncError(failed.reason);
+          // Watch for later edits only after the initial reconcile, so pulled data is not pushed back.
+          if (cancelled || useAuthStore.getState().user?.id !== user.id) return;
+          stopWatching?.();
+          const stopProfile = watchProfileChanges(user.id, reportSyncError);
+          const stopVocabulary = watchVocabularyChanges(user.id, reportSyncError);
+          stopWatching = () => {
+            stopProfile();
+            stopVocabulary();
+          };
+        });
       }, 0);
     };
 

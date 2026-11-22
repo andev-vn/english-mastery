@@ -1,4 +1,4 @@
-import { ChevronRight, Code2 } from 'lucide-react';
+import { ChevronRight, Code2, SpellCheck } from 'lucide-react';
 import { Link } from 'react-router';
 import { Badge, LevelBadge } from '@/components/ui/Badge';
 import { Card, SectionTitle } from '@/components/ui/Card';
@@ -23,6 +23,19 @@ export default function LearningPathPage() {
   return (
     <div className="animate-fade-up">
       <PageHeader title="Lộ trình học" subtitle="Sáu cấp độ theo khung tham chiếu châu Âu (CEFR)" />
+
+      <Link to="/grammar" className="mb-5 block">
+        <Card interactive className="flex items-center gap-4">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+            <SpellCheck className="size-6" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">Ngữ pháp theo cấp độ</span>
+            <span className="block text-sm text-text-muted">Tra cứu nhanh cấu trúc, ví dụ và lỗi thường gặp</span>
+          </span>
+          <ChevronRight className="size-5 shrink-0 text-text-muted" aria-hidden />
+        </Card>
+      </Link>
 
       <ol className="relative flex flex-col gap-3">
         {levelsQuery.data.map((level) => {

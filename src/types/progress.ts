@@ -30,6 +30,8 @@ export interface ReviewCard {
   nextReviewAt: string;
   lapses: number;
   favorite: boolean;
+  /** Last change on any device (ISO). Used to merge with the account copy. */
+  updatedAt?: string;
 }
 
 export type ActivityKind = 'lesson' | 'exercise' | 'review';

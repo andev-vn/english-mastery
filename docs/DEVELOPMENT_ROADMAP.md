@@ -27,11 +27,15 @@
       and `supabase login` (or SQL Editor)
 - [ ] Sync of learning progress (lessons, SRS, XP), which moves to the Phase 6 sync queue
 
-## Phase 3 — Learning core on real data
-- [ ] `supabaseContentRepository` with local fallback
-- [ ] Grammar section (`/grammar`, `/grammar/:topicId`) organised by CEFR level
-- [ ] Content to targets: A1 ≥ 5 modules × 3 lessons, ≥ 100 words, ≥ 50 questions; A2 ≥ 3 modules / 10 lessons / 50 words / 30 questions
-- [ ] Server-side persistence of user vocabulary (SRS) and answers
+## Phase 3 — Learning core on real data ✅
+- [x] Content repository: bundled content first; published content from Supabase swapped in once per session;
+      any failure keeps bundled content. A round-trip test proves database content equals bundled content.
+- [x] Grammar section (`/grammar`, `/grammar/:topicId`): 23 topics by CEFR level, search, reference view, practice link
+- [x] Content targets met: A1 5 modules × 3 lessons, 114 words, 77 questions; A2 3 modules / 10 lessons / 52 words / 50 questions
+- [x] Server-side persistence for signed-in users: `user_vocabulary` (per-word merge on sign-in with deletion
+      tombstones, then write-through) and `user_answers` (per finished exercise)
+- [x] Generated database types (`npm run db:types`) with runtime guards for enum columns
+- [ ] Not yet verified with a real signed-in account (needs a test sign-up with a real inbox)
 
 ## Phase 4 — Progress & assessment
 - [ ] Placement test (grammar, vocabulary, reading, listening; writing/speaking self-check) with estimated CEFR + strengths/weaknesses
@@ -53,7 +57,9 @@
 - [ ] Cloudflare Pages + Supabase production setup (DEPLOYMENT.md), CI (typecheck, lint, test, e2e)
 
 ## Known limitations
-- Learning progress lives in `localStorage` only; accounts sync the profile and daily goal, not yet progress.
+- Accounts sync the profile, daily goal, saved words/SRS state and answers. Lesson completion, XP and streaks stay on
+  the device until the Phase 4 RPCs and the Phase 6 sync queue.
+- Offline changes are reconciled at the next sign-in or app start, not through a durable queue yet.
 - Self-assessed level instead of a placement test.
 - Seed content is a representative sample, not a full curriculum.
 - `npm audit` reports moderate advisories in `glob`/`minimatch` pulled in by `workbox-build` (build-time only, not shipped to users).

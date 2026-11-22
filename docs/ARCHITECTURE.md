@@ -61,7 +61,9 @@ src/
 | `/lessons/:lessonId`, `/practice/:exerciseId`, `/vocabulary/review` | Bare (focus mode) | Requires onboarding |
 | `*` | – | 404 page |
 
-Planned (later phases): `/placement-test`, `/grammar`, `/grammar/:topicId`, `/listening`, `/speaking`, `/reading`, `/writing`, `/assessments`.
+`/grammar` and `/grammar/:topicId` (App layout) list grammar topics by level and show a reference view.
+
+Planned (later phases): `/placement-test`, `/listening`, `/speaking`, `/reading`, `/writing`, `/assessments`.
 They are intentionally not registered yet so the app has no placeholder screens.
 
 ## Progress rules

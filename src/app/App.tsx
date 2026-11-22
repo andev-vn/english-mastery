@@ -3,6 +3,7 @@ import { RouterProvider } from 'react-router';
 import { Toaster } from '@/components/ui/Toast';
 import { router } from './router';
 import { AuthSync } from './AuthSync';
+import { ContentSync } from './ContentSync';
 import { ThemeSync } from './ThemeSync';
 import { PwaPrompt } from './PwaPrompt';
 
@@ -17,6 +18,7 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeSync />
       <AuthSync />
+      <ContentSync />
       <RouterProvider router={router} />
       <Toaster />
       <PwaPrompt />
