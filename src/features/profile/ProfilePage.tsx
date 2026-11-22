@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { BarChart3, ChevronRight, CloudOff, Flame, Settings, Zap } from 'lucide-react';
+import { BarChart3, ChevronRight, Flame, Settings, Zap } from 'lucide-react';
 import { Link } from 'react-router';
 import { AchievementCard } from '@/components/learning/AchievementCard';
 import { LevelBadge } from '@/components/ui/Badge';
@@ -9,6 +9,7 @@ import { ProgressBar } from '@/components/ui/Progress';
 import { achievementStatuses, snapshot } from '@/lib/progress';
 import { xpLevel } from '@/lib/xp';
 import { useProgressStore } from '@/stores/progressStore';
+import { AccountCard } from './AccountCard';
 
 export default function ProfilePage() {
   const state = useProgressStore();
@@ -101,12 +102,7 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <Card className="flex gap-3 bg-surface-muted" padding="sm">
-        <CloudOff className="mt-0.5 size-5 shrink-0 text-text-muted" aria-hidden />
-        <p className="text-sm text-text-subtle">
-          Bạn đang dùng <strong>chế độ khách</strong>. Tiến độ chỉ được lưu trên trình duyệt của thiết bị này. Khi tính năng tài khoản ra mắt, bạn có thể liên kết để đồng bộ tiến độ.
-        </p>
-      </Card>
+      <AccountCard />
     </div>
   );
 }

@@ -62,4 +62,6 @@ export interface LearnerProfile {
   level: CefrLevel;
   goal: LearningGoal;
   onboarded: boolean;
+  /** Last local edit (ISO). Used to reconcile with the account profile without losing newer data. */
+  updatedAt?: string;
 }

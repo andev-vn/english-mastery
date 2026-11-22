@@ -2,6 +2,7 @@ import { BookOpenCheck, Brain, Sparkles, WifiOff } from 'lucide-react';
 import { Navigate } from 'react-router';
 import { ButtonLink } from '@/components/ui/Button';
 import { Logo } from '@/components/ui/Logo';
+import { isSupabaseConfigured } from '@/lib/env';
 import { useProgressStore } from '@/stores/progressStore';
 
 const highlights = [
@@ -54,9 +55,16 @@ export default function WelcomePage() {
         <ButtonLink to="/onboarding" size="lg" fullWidth>
           Bắt đầu học
         </ButtonLink>
-        <p className="text-center text-xs text-text-muted">
-          Bạn đang dùng chế độ khách: tiến độ được lưu trên thiết bị này. Tính năng tài khoản sẽ sớm có để đồng bộ giữa các thiết bị.
-        </p>
+        {isSupabaseConfigured ? (
+          <>
+            <ButtonLink to="/login" size="lg" variant="outline" fullWidth>
+              Tôi đã có tài khoản
+            </ButtonLink>
+            <p className="text-center text-xs text-text-muted">Không cần tài khoản để bắt đầu — bạn có thể tạo sau để lưu hồ sơ.</p>
+          </>
+        ) : (
+          <p className="text-center text-xs text-text-muted">Chế độ khách: tiến độ được lưu trên thiết bị này.</p>
+        )}
       </div>
     </div>
   );

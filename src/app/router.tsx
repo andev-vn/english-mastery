@@ -3,7 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router';
 import { PageSkeleton } from '@/components/ui/States';
 import { AppLayout } from './layouts/AppLayout';
 import { BareLayout } from './layouts/BareLayout';
-import { RequireOnboarding, RootRedirect } from './guards';
+import { RequireAuth, RequireOnboarding, RootRedirect } from './guards';
 import { RouteError } from './RouteError';
 
 /** Route-level code splitting: each page is its own chunk. */
@@ -20,6 +20,11 @@ export const router = createBrowserRouter([
         children: [
           { path: 'welcome', lazy: page(() => import('@/features/onboarding/WelcomePage')) },
           { path: 'onboarding', lazy: page(() => import('@/features/onboarding/OnboardingPage')) },
+          { path: 'login', lazy: page(() => import('@/features/auth/LoginPage')) },
+          { path: 'register', lazy: page(() => import('@/features/auth/RegisterPage')) },
+          { path: 'forgot-password', lazy: page(() => import('@/features/auth/ForgotPasswordPage')) },
+          { path: 'reset-password', lazy: page(() => import('@/features/auth/ResetPasswordPage')) },
+          { path: 'auth/callback', lazy: page(() => import('@/features/auth/AuthCallbackPage')) },
         ],
       },
       {
@@ -37,6 +42,10 @@ export const router = createBrowserRouter([
               { path: 'profile', lazy: page(() => import('@/features/profile/ProfilePage')) },
               { path: 'progress', lazy: page(() => import('@/features/profile/ProgressPage')) },
               { path: 'settings', lazy: page(() => import('@/features/profile/SettingsPage')) },
+              {
+                element: <RequireAuth />,
+                children: [{ path: 'account', lazy: page(() => import('@/features/profile/AccountPage')) }],
+              },
             ],
           },
           {

@@ -21,10 +21,26 @@ interface ContentRepository {
 ```
 
 Current implementation: `localContentRepository` (bundled, lazily imported seed data).
-Phase 2: `supabaseContentRepository` reading published rows, falling back to the local dataset offline.
+Phase 3: `supabaseContentRepository` reading published rows, falling back to the local dataset offline.
 
 React hooks (`src/services/contentQueries.ts`): `useLevels`, `useModules`, `useModule`, `useLessons`, `useLesson`,
 `useVocabulary`, `useVocabularyTopics`, `useExercises`, `useExercise` — TanStack Query, `staleTime: Infinity`.
+
+## Supabase client & auth (implemented)
+
+- `src/lib/env.ts`: validated config. Supabase is enabled only when both `VITE_SUPABASE_URL` and
+  `VITE_SUPABASE_PUBLISHABLE_KEY` are set; secret/service-role keys are rejected.
+- `src/services/supabase/client.ts`: `getSupabase()` lazily imports the SDK (its own ~56 KB gzip chunk, never loaded
+  in guest mode) and creates one client with the PKCE flow and persisted sessions. Returns `null` when unconfigured.
+- `src/services/auth/authService.ts`: `signIn`, `signUp` (sends `display_name` metadata), `signOut` (this device only),
+  `requestPasswordReset`, `updatePassword`, `resolveSessionUser`, `safeNextPath` (blocks open redirects).
+- `src/services/auth/authErrors.ts`: Supabase error codes mapped to Vietnamese messages.
+- `src/stores/authStore.ts` + `src/app/AuthSync.tsx`: mirror the session (`disabled | loading | signed_in | signed_out`).
+- `src/services/profileRepository.ts`: `fetchProfile`, `saveProfile` (profiles + learning_goals, RLS-scoped).
+- `src/services/accountSync.ts`: on sign-in, reconciles the device profile with the account (`decideProfileSync`:
+  the onboarded side wins, otherwise the newest `updated_at`), then pushes later edits (debounced).
+
+Email links go to `/auth/callback?next=…`, which waits for the PKCE code exchange, syncs the profile and continues.
 
 ## Progress (implemented locally)
 
@@ -41,7 +57,7 @@ React hooks (`src/services/contentQueries.ts`): `useLevels`, `useModules`, `useM
 | `finishReviewSession({ reviewed, xp, durationSeconds })` | Activity log + study time |
 | `resetProgress()` | Clears local progress |
 
-Phase 2/6: these become calls on a `ProgressRepository` that writes to IndexedDB and queues sync operations
+Phase 6: these become calls on a `ProgressRepository` that writes to IndexedDB and queues sync operations
 (with client-generated operation IDs) to Supabase RPCs.
 
 ## Planned server endpoints

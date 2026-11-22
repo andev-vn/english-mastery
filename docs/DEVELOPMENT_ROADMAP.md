@@ -15,13 +15,17 @@
 - [x] Unit/component tests (Vitest) and E2E (Playwright at 360 px + desktop)
 - [x] Verified in browser at 360 × 800 and 1280 px, light & dark; no horizontal overflow
 
-## Phase 2 — Supabase & authentication
-- [ ] Supabase client + centralized env config (`src/lib/env.ts`, Zod-validated)
-- [ ] SQL migrations for all tables in DATABASE.md, constraints, indexes, RLS
-- [ ] Seed script generating SQL from `src/data`
-- [ ] Auth: register, login, logout, password reset, session persistence, protected routes
-- [ ] Profiles; link guest progress to a new account
-- [ ] RLS tests with two users
+## Phase 2 — Supabase & authentication ✅ (code complete; live project pending)
+- [x] Supabase client (lazy SDK chunk, PKCE) + validated env config that rejects secret keys
+- [x] SQL migration: all tables, constraints, indexes, `updated_at` triggers, new-user trigger, RLS on every table
+- [x] Seed generated from `src/data` (`npm run db:seed:generate`), idempotent
+- [x] Auth: register (with email confirmation), login, logout, forgot/reset password, session persistence,
+      email-link callback, protected `/account` route, Vietnamese error messages
+- [x] Profiles: device profile linked to the account on sign-in; later edits synced
+- [x] Database tests in PGlite: RLS with two users, constraints, trigger, idempotency (17 tests)
+- [ ] **Apply the migration to the live project and test sign-up/login end to end.** Waiting on `.env.local`
+      and `supabase login` (or SQL Editor)
+- [ ] Sync of learning progress (lessons, SRS, XP), which moves to the Phase 6 sync queue
 
 ## Phase 3 — Learning core on real data
 - [ ] `supabaseContentRepository` with local fallback
@@ -48,8 +52,8 @@
 - [ ] Lighthouse audit on mobile (targets ≥ 90), accessibility review, security review
 - [ ] Cloudflare Pages + Supabase production setup (DEPLOYMENT.md), CI (typecheck, lint, test, e2e)
 
-## Known limitations (Phase 1)
-- Guest progress lives in `localStorage` only (no cross-device sync yet).
+## Known limitations
+- Learning progress lives in `localStorage` only; accounts sync the profile and daily goal, not yet progress.
 - Self-assessed level instead of a placement test.
 - Seed content is a representative sample, not a full curriculum.
 - `npm audit` reports moderate advisories in `glob`/`minimatch` pulled in by `workbox-build` (build-time only, not shipped to users).

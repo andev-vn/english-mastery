@@ -1,4 +1,6 @@
-# ERD (planned — Phase 2)
+# ERD
+
+Implemented in `supabase/migrations/20261123000000_initial_schema.sql` (see DATABASE.md).
 
 ```mermaid
 erDiagram

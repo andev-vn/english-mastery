@@ -15,16 +15,37 @@
 5. `public/_headers` sets long-term caching for hashed assets and `no-cache` for `sw.js`, `index.html` and the manifest
    so users receive updates.
 
-Phase 2 will add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` as Pages environment variables
-(the anon key is public by design; RLS protects data). **Never** add the service-role key or AI keys to Pages.
+Supabase environment variables (Pages → Settings → Environment variables, for Production and Preview):
 
-## Supabase (Phase 2)
+| Variable | Value |
+| --- | --- |
+| `VITE_SUPABASE_URL` | `https://<project-ref>.supabase.co` |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…` (public by design; RLS protects the data) |
 
-1. Create a project (free tier). Note URL + anon key.
-2. `npx supabase link --project-ref <ref>` then `npx supabase db push` to apply `supabase/migrations`.
-3. Seed published content with `supabase/seed.sql`.
-4. Auth → URL configuration: site URL = Pages domain; add redirect URLs for password reset.
-5. (Optional, Phase 6) `npx supabase functions deploy ai-tutor` and `npx supabase secrets set AI_API_KEY=…`.
+**Never** add the secret key (`sb_secret_…`), the legacy service-role key or AI keys to Pages. The app refuses to start
+with them anyway (`src/lib/env.ts`). Without these variables the app runs in guest mode.
+
+## Supabase
+
+1. Create a project (free tier). Copy the project URL and publishable key from **Connect → Framework**.
+   Choose React/Vite there; the Next.js snippet (`@supabase/ssr`, `NEXT_PUBLIC_*`) does not apply to this app.
+2. Local `.env.local` (git-ignored):
+   ```
+   VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+   ```
+3. Apply the schema and content, using either:
+   - the CLI: `npx supabase login`, then `npm run db:link`, then `npm run db:push` (CLI v3 targets the local stack unless `--remote` is passed; the script includes it); or
+   - the dashboard: SQL Editor, paste and run the migration file, then `supabase/seed.sql`.
+4. **Authentication → URL Configuration**:
+   - Site URL: your production URL (e.g. `https://english-mastery.pages.dev`), or `http://localhost:5173` while developing.
+   - Redirect URLs: `http://localhost:5173/auth/callback`, `https://<your-domain>/auth/callback`
+     (and `https://*.<project>.pages.dev/auth/callback` for preview deployments).
+5. **Authentication → Providers → Email**: keep "Confirm email" on (recommended). Set the password policy to at least
+   8 characters with letters and digits, matching the app's form validation and `supabase/config.toml`.
+6. The free tier's built-in email sender allows only a few emails per hour, which is fine for testing.
+   For real users, configure custom SMTP (Authentication → Emails → SMTP), e.g. a free tier from an email provider.
+7. (Phase 6, optional) `npx supabase functions deploy ai-tutor` and `npx supabase secrets set AI_API_KEY=…`.
 
 ## Free-tier limits (check current values before launch — providers change them)
 
