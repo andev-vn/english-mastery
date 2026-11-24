@@ -222,27 +222,36 @@ export type Database = {
       assessment_results: {
         Row: {
           assessment_id: string
+          client_op_id: string | null
           created_at: string
           estimated_level: string
           id: string
+          level_scores: Json
+          mastered_level: string | null
           score: number
           skill_scores: Json
           user_id: string
         }
         Insert: {
           assessment_id: string
+          client_op_id?: string | null
           created_at?: string
           estimated_level: string
           id?: string
+          level_scores?: Json
+          mastered_level?: string | null
           score: number
           skill_scores?: Json
           user_id: string
         }
         Update: {
           assessment_id?: string
+          client_op_id?: string | null
           created_at?: string
           estimated_level?: string
           id?: string
+          level_scores?: Json
+          mastered_level?: string | null
           score?: number
           skill_scores?: Json
           user_id?: string
@@ -263,6 +272,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "assessment_results_mastered_level_fkey"
+            columns: ["mastered_level"]
+            isOneToOne: false
+            referencedRelation: "cefr_levels"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "assessment_results_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -275,6 +291,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string
+          estimated_minutes: number
           id: string
           is_published: boolean
           title: string
@@ -283,6 +300,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string
+          estimated_minutes?: number
           id: string
           is_published?: boolean
           title: string
@@ -291,6 +309,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string
+          estimated_minutes?: number
           id?: string
           is_published?: boolean
           title?: string
@@ -1018,7 +1037,67 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      _local_date: { Args: { p_tz: string }; Returns: string }
+      _progress_summary: {
+        Args: { p_tz: string; p_user: string }
+        Returns: Json
+      }
+      _require_user: { Args: never; Returns: string }
+      _safe_tz: { Args: { p_tz: string }; Returns: string }
+      _touch_streak: {
+        Args: { p_day: string; p_user: string }
+        Returns: undefined
+      }
+      _unlock_achievements: { Args: { p_user: string }; Returns: string[] }
+      complete_lesson: {
+        Args: { p_lesson_id: string; p_op_id: string; p_tz?: string }
+        Returns: Json
+      }
+      get_progress_summary: { Args: { p_tz?: string }; Returns: Json }
+      grade_answer: {
+        Args: {
+          p_answer: Json
+          p_correct_option: string
+          p_payload: Json
+          p_type: string
+        }
+        Returns: boolean
+      }
+      matches_any: {
+        Args: { p_accepted: Json; p_input: string }
+        Returns: boolean
+      }
+      normalize_answer: { Args: { t: string }; Returns: string }
+      record_reviews: {
+        Args: {
+          p_duration_seconds: number
+          p_op_id: string
+          p_recalled: number
+          p_reviewed: number
+          p_tz?: string
+        }
+        Returns: Json
+      }
+      submit_assessment: {
+        Args: {
+          p_answers: Json
+          p_assessment_id: string
+          p_duration_seconds: number
+          p_op_id: string
+          p_tz?: string
+        }
+        Returns: Json
+      }
+      submit_exercise: {
+        Args: {
+          p_answers: Json
+          p_duration_seconds: number
+          p_exercise_id: string
+          p_op_id: string
+          p_tz?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

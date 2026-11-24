@@ -4,6 +4,7 @@ Supabase Postgres. Migrations, in order:
 1. [`20261123000000_initial_schema.sql`](../supabase/migrations/20261123000000_initial_schema.sql): tables, constraints, indexes, triggers, RLS
 2. [`20261123010000_api_grants.sql`](../supabase/migrations/20261123010000_api_grants.sql): explicit least-privilege grants (new projects no longer expose tables automatically)
 3. [`20261123020000_content_references.sql`](../supabase/migrations/20261123020000_content_references.sql): `lessons.vocabulary_ids` / `exercise_ids`, `grammar_topics.summary_vi`
+4. [`20261124000000_progress_rpcs.sql`](../supabase/migrations/20261124000000_progress_rpcs.sql): SQL answer grading, progress RPCs, streaks, achievements, `assessments.estimated_minutes`, `assessment_results.mastered_level` / `level_scores` / `client_op_id`
 Seed: [`supabase/seed.sql`](../supabase/seed.sql), **generated** from `src/data` with `npm run db:seed:generate`. Don't edit it by hand.
 
 ## Conventions
@@ -62,6 +63,14 @@ RLS is enabled on **every** table.
 Content writes have no policy at all. They happen only through migrations and the seed, run by the project owner.
 The service-role key is never shipped to the browser, and `src/lib/env.ts` refuses to start with one.
 
+## Server-side progress
+
+XP, streaks, achievements, study sessions and assessment results have no client write policy: they are written only
+by the RPCs in migration 4 (see [API.md](API.md#progress-implemented)). The RPCs grade answers with
+`grade_answer()` / `normalize_answer()`, which mirror `src/lib/grading.ts`, so a client cannot claim a score.
+Internal helpers (`_touch_streak`, `_unlock_achievements`, `_progress_summary`, grading functions) are not executable
+by API roles.
+
 ## Tests
 
 `supabase/tests/database.test.ts` runs the real migration and seed in an in-process Postgres (PGlite) with a
@@ -77,6 +86,9 @@ No Docker is needed. It covers:
 Also:
 - `supabase/tests/content-roundtrip.test.ts`: bundled content → seed → Postgres (read as `anon`) → `assembleDataset()`
   must equal the bundled content.
+- `supabase/tests/progress-rpc.test.ts`: RPC privileges, **grading parity with the TypeScript grader for every
+  exercise question** (correct, wrong and messy answers), XP rules, idempotency, anti-farming, review cap, streaks,
+  placement scoring parity with `scorePlacement()`, summary.
 - `supabase/tests/learning-sync.test.ts`: the client's row mapping for `user_vocabulary` and `user_answers` against
   the real schema.
 

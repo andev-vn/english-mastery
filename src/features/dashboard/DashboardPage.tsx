@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { BookCheck, Brain, ChevronRight, Clock, Dumbbell, Flame, GraduationCap, Languages, Zap } from 'lucide-react';
+import { BookCheck, Brain, ChevronRight, ClipboardCheck, Clock, Dumbbell, Flame, GraduationCap, Languages, Zap } from 'lucide-react';
 import { Link } from 'react-router';
 import { LessonCard } from '@/components/learning/LessonCard';
 import { LevelBadge } from '@/components/ui/Badge';
@@ -113,6 +113,22 @@ export default function DashboardPage() {
           </Card>
         ))}
       </section>
+
+      {/* Placement test prompt (until the learner has a result) */}
+      {state.assessmentResults.length === 0 && (
+        <Link to="/placement-test" className="block">
+          <Card interactive className="flex items-center gap-4">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+              <ClipboardCheck className="size-6" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold">Chưa chắc trình độ của mình?</span>
+              <span className="block text-sm text-text-muted">Làm bài kiểm tra xếp lớp (khoảng 12 phút) để nhận lộ trình phù hợp.</span>
+            </span>
+            <ChevronRight className="size-5 text-text-muted" aria-hidden />
+          </Card>
+        </Link>
+      )}
 
       {/* Reviews due */}
       <Link to={due > 0 ? '/vocabulary/review' : '/vocabulary'} className="block">

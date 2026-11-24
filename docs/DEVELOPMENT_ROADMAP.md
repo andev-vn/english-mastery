@@ -37,9 +37,18 @@
 - [x] Generated database types (`npm run db:types`) with runtime guards for enum columns
 - [ ] Not yet verified with a real signed-in account (needs a test sign-up with a real inbox)
 
-## Phase 4 — Progress & assessment
-- [ ] Placement test (grammar, vocabulary, reading, listening; writing/speaking self-check) with estimated CEFR + strengths/weaknesses
-- [ ] Server-validated XP/streak RPCs, achievements table, assessment history
+## Phase 4 — Progress & assessment ✅
+- [x] Placement test (`/placement-test`): 24 questions, 4 per level, five skills; listening via speech synthesis with
+      transcript fallback; estimate = level after the highest consecutive level with ≥ 3/4 correct; strengths/weaknesses
+      with practice links; suggested first lesson; "set my level"; retake. Speaking is not assessed (stated in the UI).
+- [x] Assessment history (`/assessments`), dashboard prompt until the first result
+- [x] Server-validated progress RPCs: `complete_lesson`, `submit_exercise` (server-side grading), `record_reviews`
+      (daily cap), `submit_assessment`, `get_progress_summary`; idempotent per operation id; streak in the learner's
+      time zone; achievements unlocked on the server
+- [x] Client: RPC calls after each meaningful action (signed-in only); on sign-in, lessons completed as a guest are
+      uploaded and the account's progress is restored (never lowering local values)
+- [x] Parity tests: SQL grader vs TypeScript grader on every exercise question; SQL placement scoring vs `scorePlacement()`
+- [ ] Not yet verified with a real signed-in account (needs a test sign-up with a real inbox)
 
 ## Phase 5 — Language skills
 - [ ] Listening (audio player, speed, transcript, translation, dictation)
@@ -57,9 +66,9 @@
 - [ ] Cloudflare Pages + Supabase production setup (DEPLOYMENT.md), CI (typecheck, lint, test, e2e)
 
 ## Known limitations
-- Accounts sync the profile, daily goal, saved words/SRS state and answers. Lesson completion, XP and streaks stay on
-  the device until the Phase 4 RPCs and the Phase 6 sync queue.
-- Offline changes are reconciled at the next sign-in or app start, not through a durable queue yet.
-- Self-assessed level instead of a placement test.
+- RPC calls that fail (offline) are not retried until the Phase 6 queue; lessons are re-uploaded at the next sign-in,
+  but exercise attempts and review sessions made offline stay on the device only.
+- Exercise attempts made as a guest are not uploaded (their answers were not kept).
+- Review XP on the server is trust-bounded (2 XP per recalled card, max 120/day) because review state is client-writable.
 - Seed content is a representative sample, not a full curriculum.
 - `npm audit` reports moderate advisories in `glob`/`minimatch` pulled in by `workbox-build` (build-time only, not shipped to users).

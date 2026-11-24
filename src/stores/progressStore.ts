@@ -4,7 +4,7 @@ import { toDayKey } from '@/lib/date';
 import { uid } from '@/lib/cn';
 import { createCard, isDue, scheduleReview, type ReviewGrade } from '@/lib/srs';
 import { exerciseXp, XP_LESSON_COMPLETE, XP_PER_DUE_REVIEW } from '@/lib/xp';
-import type { ActivityEntry, ExerciseAttempt, LearnerProfile, LessonProgress, ReviewCard } from '@/types/progress';
+import type { ActivityEntry, AssessmentRecord, ExerciseAttempt, LearnerProfile, LessonProgress, ReviewCard } from '@/types/progress';
 
 /**
  * Local (guest) learning progress.
@@ -14,6 +14,8 @@ export interface ProgressState {
   profile: LearnerProfile;
   lessons: Record<string, LessonProgress>;
   attempts: ExerciseAttempt[];
+  /** Assessment history, newest first. */
+  assessmentResults: AssessmentRecord[];
   cards: Record<string, ReviewCard>;
   /** Words removed on this device (wordId → ISO time), so a sync cannot bring them back. */
   removedWords: Record<string, string>;
@@ -43,6 +45,12 @@ export interface ProgressState {
   toggleFavorite: (wordId: string) => void;
   reviewWord: (wordId: string, grade: ReviewGrade) => number;
   finishReviewSession: (input: { reviewed: number; xp: number; durationSeconds: number }) => void;
+  recordAssessment: (record: AssessmentRecord) => void;
+  /**
+   * Merges the account's validated progress into this device (never lowers local values):
+   * completed lessons are added, XP and per-day minutes/XP take the higher of the two.
+   */
+  mergeServerProgress: (summary: { completedLessonIds: string[]; totalXp: number; days: { day: string; minutes: number; xp: number }[] }) => void;
   /** Applies the result of merging with the account; `resolved` deletions are forgotten. */
   applyMergedCards: (cards: Record<string, ReviewCard>, resolved: string[]) => void;
   resetProgress: () => void;
@@ -55,6 +63,7 @@ const initialData = {
   profile: { displayName: '', level: 'A1', goal: 'daily', onboarded: false } satisfies LearnerProfile,
   lessons: {},
   attempts: [],
+  assessmentResults: [],
   cards: {},
   removedWords: {},
   activity: [],
@@ -206,6 +215,31 @@ export const useProgressStore = create<ProgressState>()(
         });
       },
 
+      recordAssessment: (record) =>
+        set((s) =>
+          s.assessmentResults.some((r) => r.id === record.id)
+            ? s
+            : { assessmentResults: [record, ...s.assessmentResults].slice(0, 50) },
+        ),
+
+      mergeServerProgress: (summary) =>
+        set((s) => {
+          const now = new Date().toISOString();
+          const lessons = { ...s.lessons };
+          for (const id of summary.completedLessonIds) {
+            if (lessons[id]?.status !== 'completed') {
+              lessons[id] = { lessonId: id, status: 'completed', progressPercent: 100, completedAt: now, updatedAt: now };
+            }
+          }
+          const studyDays = { ...s.studyDays };
+          const xpByDay = { ...s.xpByDay };
+          for (const d of summary.days) {
+            studyDays[d.day] = Math.max(studyDays[d.day] ?? 0, d.minutes);
+            xpByDay[d.day] = Math.max(xpByDay[d.day] ?? 0, d.xp);
+          }
+          return { lessons, studyDays, xpByDay, totalXp: Math.max(s.totalXp, summary.totalXp) };
+        }),
+
       applyMergedCards: (cards, resolved) =>
         set((s) => {
           const removedWords = { ...s.removedWords };
@@ -223,6 +257,7 @@ export const useProgressStore = create<ProgressState>()(
         profile: s.profile,
         lessons: s.lessons,
         attempts: s.attempts,
+        assessmentResults: s.assessmentResults,
         cards: s.cards,
         removedWords: s.removedWords,
         activity: s.activity,

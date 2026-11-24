@@ -1,4 +1,4 @@
-import type { Exercise, GrammarTopic, Lesson, LevelInfo, Module, VocabularyEntry, VocabularyTopic } from '@/types/content';
+import type { Assessment, Exercise, GrammarTopic, Lesson, LevelInfo, Module, VocabularyEntry, VocabularyTopic } from '@/types/content';
 
 /** The complete published content, from either the bundled files or Supabase. */
 export interface ContentDataset {
@@ -9,16 +9,18 @@ export interface ContentDataset {
   vocabularyTopics: VocabularyTopic[];
   exercises: Exercise[];
   grammarTopics: GrammarTopic[];
+  assessments: Assessment[];
 }
 
 /** Bundled content, loaded lazily so it is code-split from the app shell (and precached for offline use). */
 export async function loadBundledDataset(): Promise<ContentDataset> {
-  const [curriculum, lessons, vocabulary, exercises, grammar] = await Promise.all([
+  const [curriculum, lessons, vocabulary, exercises, grammar, assessments] = await Promise.all([
     import('@/data/curriculum'),
     import('@/data/lessons'),
     import('@/data/vocabulary'),
     import('@/data/exercises'),
     import('@/data/grammar'),
+    import('@/data/assessments'),
   ]);
   return {
     levels: curriculum.levels,
@@ -28,5 +30,6 @@ export async function loadBundledDataset(): Promise<ContentDataset> {
     vocabularyTopics: vocabulary.vocabularyTopics,
     exercises: exercises.exercises,
     grammarTopics: grammar.grammarTopics,
+    assessments: assessments.assessments,
   };
 }

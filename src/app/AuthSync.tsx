@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { toast } from '@/components/ui/Toast';
 import { syncProfileOnSignIn, watchProfileChanges } from '@/services/accountSync';
 import { syncVocabularyOnSignIn, watchVocabularyChanges } from '@/services/learningSync';
+import { syncProgressOnSignIn } from '@/services/progressSync';
 import { getSupabase } from '@/services/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -32,7 +33,7 @@ export function AuthSync() {
       // Defer: Supabase must not be called from inside its own auth callback.
       window.setTimeout(() => {
         if (cancelled) return;
-        void Promise.allSettled([syncProfileOnSignIn(user.id), syncVocabularyOnSignIn(user.id)]).then((results) => {
+        void Promise.allSettled([syncProfileOnSignIn(user.id), syncVocabularyOnSignIn(user.id), syncProgressOnSignIn()]).then((results) => {
           const failed = results.find((r) => r.status === 'rejected');
           if (failed) reportSyncError(failed.reason);
           // Watch for later edits only after the initial reconcile, so pulled data is not pushed back.

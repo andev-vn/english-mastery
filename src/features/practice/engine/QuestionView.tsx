@@ -1,4 +1,5 @@
 import { BookText } from 'lucide-react';
+import { ListeningClip } from '@/components/learning/ListeningClip';
 import type { AnswerValue, Question } from '@/types/content';
 import { MatchingInput, MultipleChoiceInput, OrderingInput, TrueFalseInput } from './inputs';
 import { TextAnswerInput } from './TextAnswerInput';
@@ -49,6 +50,8 @@ export function QuestionView({ question, value, onChange, onSubmit, revealed, co
 
   return (
     <div className="flex flex-col gap-5">
+      {/* Transcript stays visible after answering so the learner can check what they heard. */}
+      {question.audioText && <ListeningClip key={question.id} text={question.audioText} hideTranscript={!revealed} />}
       {question.context && (
         <details className="group rounded-card border border-border bg-surface p-4" open>
           <summary className="flex min-h-8 cursor-pointer list-none items-center gap-2 text-sm font-bold text-text-muted">

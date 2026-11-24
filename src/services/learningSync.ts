@@ -1,15 +1,13 @@
 import { mergeVocabulary } from '@/lib/vocabularyMerge';
 import { requireSupabase } from '@/services/supabase/client';
 import type { Tables, TablesInsert } from '@/services/supabase/database.types';
-import { useAuthStore } from '@/stores/authStore';
 import { useProgressStore } from '@/stores/progressStore';
-import type { AnswerResult } from '@/types/content';
 import type { ReviewCard } from '@/types/progress';
 
 /**
  * Server-side persistence of learning data for signed-in users:
  * - saved words + spaced-repetition state  → user_vocabulary (merged per word on sign-in, then written through)
- * - exercise answers                       → user_answers (append-only history)
+ * (Exercise answers are recorded by the submit_exercise RPC — see progressSync.ts.)
  * Writes made while offline stay on the device and are reconciled at the next sign-in;
  * the durable offline queue arrives with Phase 6.
  */
@@ -116,21 +114,4 @@ export function watchVocabularyChanges(userId: string, onError: (error: unknown)
     if (dirty.size || removed.size) flush();
     unsubscribe();
   };
-}
-
-/** Records the answers of a finished exercise for the signed-in user (no-op for guests). */
-export async function recordAnswers(input: { exerciseId: string; attemptId: string; results: AnswerResult[] }): Promise<void> {
-  const { status, user } = useAuthStore.getState();
-  if (status !== 'signed_in' || !user || input.results.length === 0) return;
-  const supabase = await requireSupabase();
-  const { error } = await supabase.from('user_answers').insert(
-    input.results.map((r) => ({
-      user_id: user.id,
-      question_id: `${input.exerciseId}:${r.questionId}`,
-      attempt_id: input.attemptId,
-      answer: r.answer,
-      is_correct: r.correct,
-    })),
-  );
-  if (error) throw error;
 }

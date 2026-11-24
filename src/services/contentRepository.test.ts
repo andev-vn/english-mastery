@@ -42,7 +42,7 @@ describe('contentRepository', () => {
 
   it('ignores an empty remote dataset', async () => {
     vi.mocked(getSupabase).mockResolvedValue(fakeClient);
-    vi.mocked(fetchRemoteDataset).mockResolvedValue({ levels: [], modules: [], lessons: [], vocabulary: [], vocabularyTopics: [], exercises: [], grammarTopics: [] });
+    vi.mocked(fetchRemoteDataset).mockResolvedValue({ levels: [], modules: [], lessons: [], vocabulary: [], vocabularyTopics: [], exercises: [], grammarTopics: [], assessments: [] });
     expect(await refreshFromRemote()).toBe(false);
     expect(contentSource()).toBe('bundled');
   });
@@ -56,6 +56,7 @@ describe('contentRepository', () => {
       vocabularyTopics: [],
       exercises: [],
       grammarTopics: [],
+      assessments: [],
     };
     vi.mocked(getSupabase).mockResolvedValue(fakeClient);
     vi.mocked(fetchRemoteDataset).mockResolvedValue(remote);

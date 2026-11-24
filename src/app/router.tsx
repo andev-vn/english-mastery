@@ -48,6 +48,7 @@ export const router = createBrowserRouter([
                 element: <RequireAuth />,
                 children: [{ path: 'account', lazy: page(() => import('@/features/profile/AccountPage')) }],
               },
+              { path: 'assessments', lazy: page(() => import('@/features/assessment/AssessmentsPage')) },
             ],
           },
           {
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
               { path: 'lessons/:lessonId', lazy: page(() => import('@/features/learn/LessonPage')) },
               { path: 'practice/:exerciseId', lazy: page(() => import('@/features/practice/PracticeSessionPage')) },
               { path: 'vocabulary/review', lazy: page(() => import('@/features/vocabulary/VocabularyReviewPage')) },
+              { path: 'placement-test', lazy: page(() => import('@/features/assessment/PlacementTestPage')) },
             ],
           },
         ],

@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, PageSkeleton } from '@/components/ui/States';
 import { toast } from '@/components/ui/Toast';
 import { lessonStatus } from '@/lib/progress';
 import { useLesson, useLessons } from '@/services/contentQueries';
+import { syncLessonCompleted } from '@/services/progressSync';
 import { useProgressStore } from '@/stores/progressStore';
 import { ContentBlocks } from './ContentBlocks';
 
@@ -61,6 +62,8 @@ export default function LessonPage() {
 
   const onComplete = () => {
     const xp = completeLesson(lesson);
+    // First completion on this device: let the server validate it and award XP (no-op for guests).
+    if (xp > 0) void syncLessonCompleted(lesson.id);
     if (xp > 0) toast.success(`Hoàn thành bài học! +${xp} XP`);
     navigate(nextLesson ? `/lessons/${nextLesson.id}` : `/modules/${lesson.moduleId}`);
   };
