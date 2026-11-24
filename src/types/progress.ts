@@ -1,4 +1,4 @@
-import type { CefrLevel } from './content';
+import type { AssessmentSkill, CefrLevel } from './content';
 
 export type LessonStatus = 'locked' | 'available' | 'in_progress' | 'completed';
 
@@ -66,4 +66,15 @@ export interface LearnerProfile {
   onboarded: boolean;
   /** Last local edit (ISO). Used to reconcile with the account profile without losing newer data. */
   updatedAt?: string;
+}
+
+/** A finished assessment (e.g. the placement test). Scores are percentages 0–100. */
+export interface AssessmentRecord {
+  id: string;
+  assessmentId: string;
+  estimatedLevel: CefrLevel;
+  masteredLevel: CefrLevel | null;
+  score: number;
+  skillScores: Partial<Record<AssessmentSkill, number>>;
+  completedAt: string;
 }

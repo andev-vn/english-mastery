@@ -1,5 +1,6 @@
 import { getSupabase } from '@/services/supabase/client';
 import type {
+  Assessment,
   CefrLevel,
   Exercise,
   GrammarTopic,
@@ -32,6 +33,7 @@ export interface ContentRepository {
   getExercises(): Promise<Exercise[]>;
   getExercise(exerciseId: string): Promise<Exercise | undefined>;
   getGrammarTopics(): Promise<GrammarTopic[]>;
+  getAssessment(assessmentId: string): Promise<Assessment | undefined>;
 }
 
 export type ContentSource = 'bundled' | 'remote';
@@ -115,6 +117,9 @@ export const contentRepository: ContentRepository = {
   },
   async getGrammarTopics() {
     return (await dataset()).grammarTopics;
+  },
+  async getAssessment(assessmentId) {
+    return (await dataset()).assessments.find((a) => a.id === assessmentId);
   },
 };
 

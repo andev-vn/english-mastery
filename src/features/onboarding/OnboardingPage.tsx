@@ -111,7 +111,7 @@ export default function OnboardingPage() {
               )}
             />
             <p className="text-sm text-text-muted">
-              Đây chỉ là điểm xuất phát ước lượng, không phải chứng chỉ CEFR. Bạn có thể đổi bất cứ lúc nào trong phần Cài đặt.
+              Chưa chắc? Cứ chọn gần đúng — sau khi thiết lập, bạn có thể làm bài kiểm tra xếp lớp (khoảng 12 phút) để ước lượng chính xác hơn, hoặc đổi trình độ trong Cài đặt.
             </p>
           </div>
         )}

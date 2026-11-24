@@ -108,8 +108,10 @@ export type QuestionType = (typeof QUESTION_TYPES)[number];
 interface QuestionBase {
   id: string;
   prompt: string;
-  /** Optional passage / transcript shown above the question (reading & listening). */
+  /** Optional passage shown above the question (reading). */
   context?: string;
+  /** Optional text played with speech synthesis (listening); the transcript can be revealed. */
+  audioText?: string;
   explanationVi: string;
 }
 
@@ -189,4 +191,21 @@ export interface AnswerResult {
   questionId: string;
   correct: boolean;
   answer: AnswerValue;
+}
+
+/* ---------- Assessments ---------- */
+
+export const ASSESSMENT_SKILLS = ['vocabulary', 'grammar', 'reading', 'listening', 'writing'] as const;
+export type AssessmentSkill = (typeof ASSESSMENT_SKILLS)[number];
+
+/** A question in an assessment is tagged with the CEFR level and skill it measures. */
+export type AssessmentQuestion = Question & { level: CefrLevel; skill: AssessmentSkill };
+
+export interface Assessment {
+  id: string;
+  title: string;
+  titleVi: string;
+  description: string;
+  estimatedMinutes: number;
+  questions: AssessmentQuestion[];
 }

@@ -5,10 +5,10 @@
 A mobile-first, installable (PWA) English learning app for Vietnamese learners, following the CEFR scale (A1 → C2).
 Free-first: the core learning experience needs no paid service and no AI key.
 
-> Status: **Phase 3 complete.** The app runs fully in guest mode. With Supabase configured, it adds accounts, loads
-> published content from the database (bundled content as offline fallback), and syncs the profile, saved words /
-> spaced-repetition state and exercise answers. Placement test, listening/speaking/writing, the offline sync queue and
-> the optional AI tutor are upcoming phases.
+> Status: **Phase 4 complete.** The app runs fully in guest mode. With Supabase configured, it adds accounts, loads
+> published content from the database (bundled content as offline fallback), syncs the profile and saved words, and
+> records progress through server-validated RPCs (server-side grading, XP, streaks, achievements, placement results).
+> Listening/speaking/reading/writing sections, the offline sync queue and the optional AI tutor are upcoming phases.
 > See [docs/DEVELOPMENT_ROADMAP.md](docs/DEVELOPMENT_ROADMAP.md).
 
 ## What works today
@@ -23,7 +23,8 @@ Free-first: the core learning experience needs no paid service and no AI key.
 | Exercise engine | Multiple choice, true/false, fill-in-the-blank, matching, sentence ordering, error correction, translation; reading passages; instant feedback with explanations; scoring; mistake review |
 | Vocabulary | Search (debounced), level/topic filters, saved/favourite/difficult lists, word details, pronunciation (browser TTS) |
 | Flashcards | SM-2-inspired spaced repetition (again / hard / good / easy) |
-| Progress | XP (meaningful actions only), XP levels, streaks, weekly stats, achievements, exercise history |
+| Progress | XP (meaningful actions only), XP levels, streaks, weekly stats, achievements, exercise history; for signed-in users validated on the server and restored on new devices |
+| Placement test | 24 questions across vocabulary, grammar, reading, listening (browser voice + transcript) and sentence writing; estimated CEFR level, strengths/weaknesses, suggested first lesson, history and retake. An estimate, not a certificate; speaking not assessed |
 | Settings | Light / dark / system theme, daily goal, translations toggle, level, name, install app, reset data |
 | PWA | Installable, offline app shell + content, update prompt, offline indicator |
 | Accounts (optional) | Supabase Auth: register with email confirmation, login, logout, forgot/reset password, account page; profile synced across devices |

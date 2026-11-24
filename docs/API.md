@@ -42,31 +42,37 @@ React hooks (`src/services/contentQueries.ts`) all use query keys prefixed with 
 
 Email links go to `/auth/callback?next=…`, which waits for the PKCE code exchange, syncs the profile and continues.
 
-## Progress (implemented locally)
+## Progress (implemented)
 
-`src/stores/progressStore.ts` (Zustand, persisted to `localStorage` key `em-progress`):
+Local, for every learner: `src/stores/progressStore.ts` (Zustand, persisted to `localStorage` key `em-progress`).
 
 | Action | Effect |
 | --- | --- |
 | `completeOnboarding(profile)` / `updateProfile(patch)` | Learner profile |
-| `startLesson(id)` | Marks a lesson in progress (idempotent) |
-| `completeLesson(lesson)` → xp | Completes once; returns 0 on repeats |
-| `recordExercise({ exerciseId, correct, total, durationSeconds })` → `{ xp, attempt }` | Stores attempt; XP only on improvement |
-| `saveWord` / `removeWord` / `toggleFavorite` | Vocabulary list |
-| `reviewWord(id, grade)` → xp | SM-2 scheduling; XP only for due cards |
-| `finishReviewSession({ reviewed, xp, durationSeconds })` | Activity log + study time |
-| `resetProgress()` | Clears local progress |
+| `startLesson(id)` / `completeLesson(lesson)` → xp | Completion and XP once per lesson |
+| `recordExercise(...)` → `{ xp, attempt }` | Attempt history; XP only on improvement |
+| `saveWord` / `removeWord` / `toggleFavorite` / `reviewWord(id, grade)` | Vocabulary and SRS |
+| `finishReviewSession(...)` / `recordAssessment(record)` | Activity log, assessment history |
+| `mergeServerProgress(summary)` | Applies the account's progress, never lowering local values |
 
-Phase 6: these become calls on a `ProgressRepository` that writes to IndexedDB and queues sync operations
-(with client-generated operation IDs) to Supabase RPCs.
+Server, for signed-in users: `src/services/progressSync.ts` calls these Postgres RPCs (`security definer`,
+`authenticated` only, idempotent per `p_op_id`, `p_tz` = IANA time zone for streak days):
+
+| RPC | Validates / does |
+| --- | --- |
+| `complete_lesson(p_lesson_id, p_op_id, p_tz)` | Lesson exists; 20 XP once per lesson (decided from the read-only session ledger) |
+| `submit_exercise(p_exercise_id, p_answers, p_duration_seconds, p_op_id, p_tz)` | **Grades the answers on the server**, stores `user_answers`, XP = 5 × improvement + 10 first perfect |
+| `record_reviews(p_reviewed, p_recalled, p_duration_seconds, p_op_id, p_tz)` | 2 XP per recalled card, capped at 120 XP per local day |
+| `submit_assessment(p_assessment_id, p_answers, p_duration_seconds, p_op_id, p_tz)` | Grades the placement test, stores `assessment_results` (no XP) |
+| `get_progress_summary(p_tz)` | Totals, streak, completed lessons, achievements, last 60 days |
+
+Every RPC returns the progress summary, which the client merges back. Sign-in runs `syncProgressOnSignIn()`:
+upload lessons completed as a guest, then restore the account's progress.
 
 ## Planned server endpoints
 
 | Endpoint | Type | Purpose |
 | --- | --- | --- |
-| `rpc/complete_lesson(lesson_id, op_id)` | Postgres function (security definer) | Validated completion + XP |
-| `rpc/record_exercise(exercise_id, answers, op_id)` | Postgres function | Server-side grading + XP |
-| `rpc/review_word(vocabulary_id, grade, reviewed_at, op_id)` | Postgres function | SRS update, conflict check on `updated_at` |
 | `functions/v1/ai-tutor` | Supabase Edge Function | Optional AI proxy; provider key stays server-side; per-user rate limit |
 
 ### AI provider interface (Phase 6)

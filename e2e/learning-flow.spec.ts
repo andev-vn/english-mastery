@@ -121,3 +121,26 @@ test('grammar index links to a reference page with practice', async ({ page }) =
   await expect(page).toHaveURL(/\/practice\/ex-a2-comparatives$/);
   await expect(page.getByRole('button', { name: 'Kiểm tra' })).toBeDisabled();
 });
+
+test('placement test produces an estimate and is saved to history', async ({ page }) => {
+  await onboard(page);
+  await page.getByRole('link', { name: /Chưa chắc trình độ của mình/ }).click();
+  await expect(page.getByRole('heading', { name: 'Bài kiểm tra xếp lớp' })).toBeVisible();
+  await page.getByRole('button', { name: 'Bắt đầu' }).click();
+
+  // First question answered, the rest skipped with "I don't know".
+  await page.getByRole('radio', { name: /hungry/ }).click();
+  await page.getByRole('button', { name: 'Tiếp tục' }).click();
+  for (let i = 0; i < 23; i++) await page.getByRole('button', { name: 'Tôi không biết' }).click();
+
+  await expect(page.getByText('Trình độ ước lượng')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'A1' })).toBeVisible();
+  await expect(page.getByText('1/24 câu đúng · 4%')).toBeVisible();
+  await expect(page.getByText(/không phải chứng chỉ CEFR chính thức/)).toBeVisible();
+
+  await page.goto('/assessments');
+  await expect(page.getByText('4%')).toBeVisible();
+  // The dashboard prompt disappears once there is a result.
+  await page.goto('/dashboard');
+  await expect(page.getByRole('link', { name: /Chưa chắc trình độ của mình/ })).toHaveCount(0);
+});

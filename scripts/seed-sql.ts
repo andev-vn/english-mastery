@@ -3,6 +3,7 @@
  * The bundled dataset stays the single source of truth; the SQL is generated, never hand-edited.
  */
 import { achievements } from '../src/data/achievements';
+import { assessments } from '../src/data/assessments';
 import { levels, modules } from '../src/data/curriculum';
 import { exercises } from '../src/data/exercises';
 import { grammarTopics } from '../src/data/grammar';
@@ -32,11 +33,15 @@ function upsert(table: string, rows: Record<string, SqlValue>[], conflict: strin
   return `insert into public.${table} (${cols.join(', ')}) values\n${values}\n${onConflict};\n`;
 }
 
-/** Type-specific question data stored in questions.payload. */
+/** Type-specific question data stored in the payload column (plus optional listening audio text). */
 function questionPayload(q: Question): Record<string, unknown> {
+  return { ...(q.audioText ? { audioText: q.audioText } : {}), ...typePayload(q) };
+}
+
+function typePayload(q: Question): Record<string, unknown> {
   switch (q.type) {
     case 'multiple_choice':
-      return {}; // options live in answer_options
+      return {}; // exercise options live in answer_options; assessment options are added separately
     case 'true_false':
       return { statement: q.statement, answer: q.answer };
     case 'fill_blank':
@@ -156,6 +161,34 @@ export function buildSeedSql(): string {
         ),
       ),
       ['question_id', 'option_key'],
+    ),
+  );
+
+  parts.push(
+    upsert(
+      'assessments',
+      assessments.map((a) => ({ id: a.id, title: a.title, title_vi: a.titleVi, description: a.description, estimated_minutes: a.estimatedMinutes })),
+      ['id'],
+    ),
+  );
+  parts.push(`delete from public.assessment_questions where assessment_id in (${assessments.map((a) => lit(a.id)).join(', ')});\n`);
+  parts.push(
+    upsert(
+      'assessment_questions',
+      assessments.flatMap((a) =>
+        a.questions.map((q, position) => ({
+          id: `${a.id}:${q.id}`, assessment_id: a.id, position, skill: q.skill, level_id: q.level, type: q.type, prompt: q.prompt,
+          payload: {
+            json: {
+              ...questionPayload(q),
+              ...(q.context ? { context: q.context } : {}),
+              ...(q.type === 'multiple_choice' ? { options: q.options, correctOptionId: q.correctOptionId } : {}),
+            },
+          },
+          explanation_vi: q.explanationVi,
+        })),
+      ),
+      ['id'],
     ),
   );
 

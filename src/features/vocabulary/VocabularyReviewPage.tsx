@@ -12,6 +12,7 @@ import { cn } from '@/lib/cn';
 import { secondsSince } from '@/lib/date';
 import { isDue, type ReviewGrade } from '@/lib/srs';
 import { useVocabulary } from '@/services/contentQueries';
+import { syncReviewSession } from '@/services/progressSync';
 import { useProgressStore } from '@/stores/progressStore';
 
 const grades: { grade: ReviewGrade; label: string; hint: string; className: string }[] = [
@@ -29,7 +30,7 @@ export default function VocabularyReviewPage() {
   const [mode, setMode] = useState<'due' | 'all'>('due');
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const [stats, setStats] = useState({ reviewed: 0, xp: 0 });
+  const [stats, setStats] = useState({ reviewed: 0, recalled: 0, xp: 0 });
   const startedAt = useRef(0);
   useEffect(() => {
     startedAt.current = Date.now();
@@ -107,12 +108,14 @@ export default function VocabularyReviewPage() {
 
   const grade = (g: ReviewGrade) => {
     const xp = reviewWord(wordId, g);
-    const next = { reviewed: stats.reviewed + 1, xp: stats.xp + xp };
+    const next = { reviewed: stats.reviewed + 1, recalled: stats.recalled + (g === 'again' ? 0 : 1), xp: stats.xp + xp };
     setStats(next);
     setFlipped(false);
     setIndex(index + 1);
     if (index + 1 >= queue.length) {
-      finishReviewSession({ ...next, durationSeconds: secondsSince(startedAt.current) });
+      const durationSeconds = secondsSince(startedAt.current);
+      finishReviewSession({ reviewed: next.reviewed, xp: next.xp, durationSeconds });
+      void syncReviewSession({ reviewed: next.reviewed, recalled: next.recalled, durationSeconds });
     }
   };
 

@@ -63,7 +63,9 @@ src/
 
 `/grammar` and `/grammar/:topicId` (App layout) list grammar topics by level and show a reference view.
 
-Planned (later phases): `/placement-test`, `/listening`, `/speaking`, `/reading`, `/writing`, `/assessments`.
+`/placement-test` (focus layout) runs the placement test; `/assessments` (App layout) shows results history.
+
+Planned (later phases): `/listening`, `/speaking`, `/reading`, `/writing`.
 They are intentionally not registered yet so the app has no placeholder screens.
 
 ## Progress rules
@@ -73,6 +75,10 @@ They are intentionally not registered yet so the app has no placeholder screens.
 - Flashcards: +2 XP per *due* card recalled; early reviews earn nothing.
 - Streak: a day counts when any study activity is recorded; the current streak survives until the end of the next day.
 - Lesson availability: levels ≤ learner level + 1 are open; higher levels unlock sequentially per module.
+- Signed-in learners: the same rules are enforced on the server by the progress RPCs (server-side grading; review XP
+  capped at 120 per day). The device shows its own values merged with the server's, never lowering either.
+- Placement estimate: a level is mastered at ≥ 75 % correct; the estimate is the level after the highest consecutive
+  mastered level (A1 if none, C2 if all).
 
 ## Error handling
 

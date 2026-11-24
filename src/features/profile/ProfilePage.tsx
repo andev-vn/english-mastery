@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { BarChart3, ChevronRight, Flame, Settings, Zap } from 'lucide-react';
+import { BarChart3, ChevronRight, ClipboardCheck, Flame, Settings, Zap } from 'lucide-react';
 import { Link } from 'react-router';
 import { AchievementCard } from '@/components/learning/AchievementCard';
 import { LevelBadge } from '@/components/ui/Badge';
@@ -70,6 +70,7 @@ export default function ProfilePage() {
         <ul className="divide-y divide-border">
           {[
             { to: '/progress', icon: BarChart3, label: 'Tiến độ học tập', hint: 'Thống kê, lịch sử và thành tích' },
+            { to: '/assessments', icon: ClipboardCheck, label: 'Kiểm tra trình độ', hint: 'Bài kiểm tra xếp lớp và lịch sử kết quả' },
             { to: '/settings', icon: Settings, label: 'Cài đặt', hint: 'Giao diện, mục tiêu, trình độ' },
           ].map(({ to, icon: Icon, label, hint }) => (
             <li key={to}>

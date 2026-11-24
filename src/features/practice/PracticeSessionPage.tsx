@@ -7,7 +7,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { ProgressBar } from '@/components/ui/Progress';
 import { EmptyState, ErrorState, PageSkeleton } from '@/components/ui/States';
 import { useExercise } from '@/services/contentQueries';
-import { recordAnswers } from '@/services/learningSync';
+import { syncExerciseSubmitted } from '@/services/progressSync';
 import { useProgressStore } from '@/stores/progressStore';
 import { FeedbackPanel } from './engine/FeedbackPanel';
 import { QuestionView } from './engine/QuestionView';
@@ -45,10 +45,12 @@ export default function PracticeSessionPage() {
     if (isLast) {
       const duration = session.elapsedSeconds();
       const correct = session.correctCount;
-      const { xp, attempt } = recordExercise({ exerciseId: exercise.id, title: exercise.titleVi, correct, total: session.total, durationSeconds: duration });
-      // Answer history for signed-in users; failures never block the learner (the local attempt is kept).
-      recordAnswers({ exerciseId: exercise.id, attemptId: attempt.id, results: session.results }).catch((e: unknown) => {
-        if (import.meta.env.DEV) console.warn('[answers] not recorded:', e);
+      const { xp } = recordExercise({ exerciseId: exercise.id, title: exercise.titleVi, correct, total: session.total, durationSeconds: duration });
+      // Signed-in users: the server re-grades the answers, records them and awards validated XP.
+      void syncExerciseSubmitted({
+        exerciseId: exercise.id,
+        answers: Object.fromEntries(session.results.map((r) => [r.questionId, r.answer])),
+        durationSeconds: duration,
       });
       setSummary({ xp, duration });
     }

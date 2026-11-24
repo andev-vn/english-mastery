@@ -17,7 +17,7 @@ async function all<T>(query: (from: number, to: number) => PromiseLike<{ data: T
 
 /** Fetches all published content (RLS already hides unpublished rows) and converts it to the app model. */
 export async function fetchRemoteDataset(supabase: AppSupabaseClient): Promise<ContentDataset> {
-  const [levels, modules, lessons, lessonContents, vocabularyTopics, vocabulary, exercises, questions, answerOptions, grammarTopics] =
+  const [levels, modules, lessons, lessonContents, vocabularyTopics, vocabulary, exercises, questions, answerOptions, grammarTopics, assessments, assessmentQuestions] =
     await Promise.all([
       all((f, t) => supabase.from('cefr_levels').select('*').order('id').range(f, t)),
       all((f, t) => supabase.from('modules').select('*').order('id').range(f, t)),
@@ -29,6 +29,8 @@ export async function fetchRemoteDataset(supabase: AppSupabaseClient): Promise<C
       all((f, t) => supabase.from('questions').select('*').order('id').range(f, t)),
       all((f, t) => supabase.from('answer_options').select('*').order('id').range(f, t)),
       all((f, t) => supabase.from('grammar_topics').select('*').order('id').range(f, t)),
+      all((f, t) => supabase.from('assessments').select('*').order('id').range(f, t)),
+      all((f, t) => supabase.from('assessment_questions').select('*').order('id').range(f, t)),
     ]);
   const rows: ContentRows = {
     levels,
@@ -41,6 +43,8 @@ export async function fetchRemoteDataset(supabase: AppSupabaseClient): Promise<C
     questions,
     answerOptions,
     grammarTopics,
+    assessments,
+    assessmentQuestions,
   };
   return assembleDataset(rows);
 }

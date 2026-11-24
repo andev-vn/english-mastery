@@ -18,6 +18,7 @@ export const contentKeys = {
   exercises: ['content', 'exercises'] as const,
   exercise: (id: string) => ['content', 'exercise', id] as const,
   grammarTopics: ['content', 'grammar-topics'] as const,
+  assessment: (id: string) => ['content', 'assessment', id] as const,
 };
 
 export const useLevels = () =>
@@ -49,3 +50,6 @@ export const useExercise = (id: string) =>
 
 export const useGrammarTopics = () =>
   useQuery({ queryKey: contentKeys.grammarTopics, queryFn: () => contentRepository.getGrammarTopics(), ...STATIC });
+
+export const useAssessment = (id: string) =>
+  useQuery({ queryKey: contentKeys.assessment(id), queryFn: () => contentRepository.getAssessment(id).then((a) => a ?? null), ...STATIC });

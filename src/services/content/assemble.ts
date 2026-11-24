@@ -1,5 +1,5 @@
-import { CEFR_LEVELS } from '@/types/content';
-import type { ContentBlock, Exercise, Lesson, Question } from '@/types/content';
+import { ASSESSMENT_SKILLS, CEFR_LEVELS } from '@/types/content';
+import type { Assessment, AssessmentSkill, ContentBlock, Exercise, Lesson, Question } from '@/types/content';
 import type { Json, Tables } from '@/services/supabase/database.types';
 import { asCefrLevel, asExerciseSkill, asLessonCategory, asPartOfSpeech, asQuestionType } from '@/services/supabase/guards';
 import type { ContentDataset } from './dataset';
@@ -16,6 +16,8 @@ export interface ContentRows {
   questions: Tables<'questions'>[];
   answerOptions: Tables<'answer_options'>[];
   grammarTopics: Tables<'grammar_topics'>[];
+  assessments: Tables<'assessments'>[];
+  assessmentQuestions: Tables<'assessment_questions'>[];
 }
 
 type JsonObject = { [key: string]: Json | undefined };
@@ -44,14 +46,48 @@ function toBlock(json: Json): ContentBlock {
   return block as unknown as ContentBlock;
 }
 
-function toQuestion(row: Tables<'questions'>, options: Tables<'answer_options'>[]): Question {
-  const id = row.id.slice(row.exercise_id.length + 1); // '<exercise_id>:<key>' → '<key>'
-  const base = { id, prompt: row.prompt, explanationVi: row.explanation_vi, ...(row.context ? { context: row.context } : {}) };
-  const payload = asObject(row.payload, `payload of ${row.id}`);
-  const type = asQuestionType(row.type);
+interface QuestionSource {
+  /** Full row id, used in error messages. */
+  rowId: string;
+  /** Question key inside its exercise or assessment. */
+  id: string;
+  type: string;
+  prompt: string;
+  context: string | null;
+  explanationVi: string;
+  payload: Json;
+  /** Exercise options come from answer_options; assessment options live in the payload. */
+  options?: Tables<'answer_options'>[];
+}
+
+function toQuestion(src: QuestionSource): Question {
+  const payload = asObject(src.payload, `payload of ${src.rowId}`);
+  const context = src.context ?? (typeof payload.context === 'string' ? payload.context : null);
+  const base = {
+    id: src.id,
+    prompt: src.prompt,
+    explanationVi: src.explanationVi,
+    ...(context ? { context } : {}),
+    ...(typeof payload.audioText === 'string' ? { audioText: payload.audioText } : {}),
+  };
+  const row = { id: src.rowId };
+  const type = asQuestionType(src.type);
   switch (type) {
     case 'multiple_choice': {
-      const sorted = [...options].sort((a, b) => a.position - b.position);
+      if (!src.options) {
+        const opts = payload.options;
+        if (!Array.isArray(opts)) throw new TypeError(`Expected options for ${row.id}`);
+        return {
+          ...base,
+          type,
+          options: opts.map((o) => {
+            const opt = asObject(o, 'option');
+            return { id: str(opt, 'id'), text: str(opt, 'text') };
+          }),
+          correctOptionId: str(payload, 'correctOptionId'),
+        };
+      }
+      const sorted = [...src.options].sort((a, b) => a.position - b.position);
       const correct = sorted.find((o) => o.is_correct);
       if (!correct) throw new TypeError(`No correct option for ${row.id}`);
       return { ...base, type, options: sorted.map((o) => ({ id: o.option_key, text: o.text })), correctOptionId: correct.option_key };
@@ -134,10 +170,52 @@ export function assembleDataset(rows: ContentRows): ContentDataset {
       estimatedMinutes: e.estimated_minutes,
       questions: [...(questionsByExercise.get(e.id) ?? [])]
         .sort((a, b) => a.position - b.position)
-        .map((q) => toQuestion(q, optionsByQuestion.get(q.id) ?? [])),
+        .map((q) =>
+          toQuestion({
+            rowId: q.id,
+            id: q.id.slice(q.exercise_id.length + 1), // '<exercise_id>:<key>' → '<key>'
+            type: q.type,
+            prompt: q.prompt,
+            context: q.context,
+            explanationVi: q.explanation_vi,
+            payload: q.payload,
+            options: optionsByQuestion.get(q.id) ?? [],
+          }),
+        ),
+    }));
+
+  const asSkill = (value: string): AssessmentSkill => {
+    if ((ASSESSMENT_SKILLS as readonly string[]).includes(value)) return value as AssessmentSkill;
+    throw new TypeError(`Unexpected assessment skill: ${value}`);
+  };
+  const questionsByAssessment = groupBy(rows.assessmentQuestions, (q) => q.assessment_id);
+  const assessments: Assessment[] = rows.assessments
+    .filter((a) => a.is_published)
+    .map((a) => ({
+      id: a.id,
+      title: a.title,
+      titleVi: a.title_vi,
+      description: a.description,
+      estimatedMinutes: a.estimated_minutes,
+      questions: [...(questionsByAssessment.get(a.id) ?? [])]
+        .sort((x, y) => x.position - y.position)
+        .map((q) => ({
+          ...toQuestion({
+            rowId: q.id,
+            id: q.id.slice(q.assessment_id.length + 1),
+            type: q.type,
+            prompt: q.prompt,
+            context: null,
+            explanationVi: q.explanation_vi,
+            payload: q.payload,
+          }),
+          level: asCefrLevel(q.level_id),
+          skill: asSkill(q.skill),
+        })),
     }));
 
   return {
+    assessments,
     levels: [...rows.levels]
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((l) => ({ id: asCefrLevel(l.id), name: l.name, nameVi: l.name_vi, description: l.description, order: l.sort_order })),
