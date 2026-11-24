@@ -12,10 +12,11 @@ Browser (PWA)
 │   ├── UI: features/* pages + components/* design system
 │   ├── State
 │   │   ├── TanStack Query  → read-only content (lessons, vocabulary, exercises)
-│   │   └── Zustand         → learner progress + settings (persisted locally)
-│   ├── Services            → repository interfaces (content now, progress/sync later)
+│   │   └── Zustand         → learner progress (IndexedDB) + settings (localStorage)
+│   ├── Services            → content repository, sync queue, account/progress sync, AI tutor client
+│   ├── IndexedDB (Dexie)   → progress snapshot, sync queue, downloaded content
 │   └── Service worker      → precached shell + content chunks (Workbox)
-└── Supabase (optional): Postgres + RLS, Auth (PKCE), later Edge Functions (AI proxy)
+└── Supabase (optional): Postgres + RLS, Auth (PKCE), RPCs, Edge Function `ai-tutor` (optional AI proxy)
 ```
 
 ## Source layout
@@ -47,6 +48,8 @@ src/
 | **Pure logic in `lib/`** | SRS, grading, XP and streak rules are unit-tested without React. |
 | **Native `<dialog>`** for Modal / Drawer / BottomSheet | Focus trap, Escape and inert background for free; no dialog library. |
 | **Data router + route `lazy`** | Route-level code splitting, error boundary per route tree, direct URL access works. |
+| **Device first, durable outbox** | Every action is saved on the device, then queued (IndexedDB) for the server with an idempotency key; the UI never waits for the network. See docs/PWA.md. |
+| **AI only behind an Edge Function** | Provider keys stay in server secrets; a provider interface keeps the vendor swappable; the UI renders AI actions only when the server says the tutor is available. |
 | **Guest mode first, accounts optional** | Everything works without an account. Supabase Auth adds a synced profile; `RequireAuth` protects account-only routes. Without Supabase config, the SDK is never loaded. |
 
 ## Routing

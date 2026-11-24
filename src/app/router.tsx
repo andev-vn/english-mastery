@@ -51,6 +51,7 @@ export const router = createBrowserRouter([
               { path: 'assessments', lazy: page(() => import('@/features/assessment/AssessmentsPage')) },
               ...['listening', 'speaking', 'reading', 'writing'].map((path) => ({ path, lazy: page(() => import('@/features/skills/SkillHubPage')) })),
               { path: 'developer', lazy: page(() => import('@/features/skills/DeveloperPage')) },
+              { path: 'tutor', lazy: page(() => import('@/features/tutor/TutorPage')) },
             ],
           },
           {

@@ -7,6 +7,7 @@ import { ProgressBar } from '@/components/ui/Progress';
 import { EmptyState, ErrorState, PageSkeleton } from '@/components/ui/States';
 import { cn } from '@/lib/cn';
 import { isSpeechSynthesisSupported, speak, stopSpeaking } from '@/lib/speech';
+import { AIAnswerReview } from '@/features/tutor/AIReview';
 import { matchSpeaking, type SpeakingMatch } from '@/lib/speakingMatch';
 import { recognitionErrorMessage, useSpeechRecognition } from '@/lib/useSpeechRecognition';
 import { useProgressStore } from '@/stores/progressStore';
@@ -222,6 +223,7 @@ export default function SpeakingActivityPage() {
             {ttsSupported && <IconButton label="Nghe câu gợi ý" icon={<Volume2 className="size-5" />} onClick={() => speak(current.suggested, rate * 0.95)} />}
           </div>
           <p className="text-xs text-text-muted">Đây chỉ là so sánh từ khoá, không đánh giá phát âm. Câu trả lời khác câu gợi ý vẫn có thể đúng.</p>
+          <AIAnswerReview key={`${turn}:${answer}`} question={current.partner} answer={answer} />
         </section>
       )}
 

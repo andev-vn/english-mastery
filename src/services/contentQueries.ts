@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { CefrLevel, Skill } from '@/types/content';
-import { contentRepository } from './contentRepository';
+import { contentInfo, contentRepository } from './contentRepository';
 
 /** Published content changes rarely: cache for the session; ContentSync invalidates after a remote refresh. */
 const STATIC = { staleTime: Infinity, gcTime: Infinity } as const;
@@ -61,3 +61,6 @@ export const useActivities = (skill?: Skill) =>
 
 export const useActivity = (id: string) =>
   useQuery({ queryKey: contentKeys.activity(id), queryFn: () => contentRepository.getActivity(id).then((a) => a ?? null), ...STATIC });
+
+/** Where the content in use came from and how much there is (Settings → offline data). */
+export const useContentInfo = () => useQuery({ queryKey: ['content', 'info'] as const, queryFn: contentInfo });

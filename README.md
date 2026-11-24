@@ -5,11 +5,12 @@
 A mobile-first, installable (PWA) English learning app for Vietnamese learners, following the CEFR scale (A1 → C2).
 Free-first: the core learning experience needs no paid service and no AI key.
 
-> Status: **Phase 5 complete.** The app runs fully in guest mode. With Supabase configured, it adds accounts, loads
+> Status: **Phase 6 complete.** The app runs fully in guest mode. With Supabase configured, it adds accounts, loads
 > published content from the database (bundled content as offline fallback), syncs the profile and saved words, and
 > records progress through server-validated RPCs (server-side grading, XP, streaks, achievements, placement results).
-> Listening, speaking, reading and writing practice plus Developer English are included. The offline sync queue, the
-> optional AI tutor and production hardening are upcoming phases.
+> Listening, speaking, reading and writing practice plus Developer English are included. Progress lives in IndexedDB,
+> signed-in changes go through a durable offline sync queue, and an optional AI tutor runs in a Supabase Edge Function
+> (disabled until a provider key is set). Production hardening is the next phase.
 > See [docs/DEVELOPMENT_ROADMAP.md](docs/DEVELOPMENT_ROADMAP.md).
 
 ## What works today
@@ -32,7 +33,8 @@ Free-first: the core learning experience needs no paid service and no AI key.
 | Reading | Passages with per-paragraph translation, tap-to-define vocabulary and comprehension questions |
 | Writing | Sentence, journal, email, workplace and essay prompts; autosaved drafts; rule-based feedback (length, capitals, frequent Vietnamese-learner errors, prompt checklist); sample answers; daily journal |
 | Developer English | Stand-ups, explaining bugs, Java/backend interviews, bug reports, PR descriptions, README and postmortem reading (`/developer`) |
-| PWA | Installable, offline app shell + content, update prompt, offline indicator |
+| PWA & offline | Installable; offline app shell and content; progress in IndexedDB; offline sync queue with status (Settings → Dữ liệu ngoại tuyến); downloaded content cached for offline; update prompt; offline banner |
+| AI tutor (optional) | `/tutor` chat, AI writing review and speaking-answer review through a Supabase Edge Function; per-user limits; hidden or clearly marked unavailable when not configured |
 | Accounts (optional) | Supabase Auth: register with email confirmation, login, logout, forgot/reset password, account page; profile synced across devices |
 
 Content: 31 lessons in 13 modules, 183 vocabulary entries, 31 exercises / 151 questions, 23 grammar topics.
@@ -78,7 +80,8 @@ No environment variables are needed for guest mode. To enable accounts, create `
 
 React 19 · TypeScript 6 (strict) · Vite 8 · Tailwind CSS 4 · React Router 8 · TanStack Query 5 · Zustand 5 ·
 React Hook Form + Zod 4 · Lucide · vite-plugin-pwa (Workbox) · Vitest 5 · Testing Library · Playwright.
-Supabase (Postgres + RLS, Auth); PGlite for database tests. Planned: Dexie (IndexedDB), Edge Functions, Cloudflare Pages.
+Dexie (IndexedDB). Supabase (Postgres + RLS, Auth, Edge Functions); PGlite for database tests. Optional AI: Claude via
+the Anthropic SDK inside the Edge Function. Planned: Cloudflare Pages.
 
 ## Documentation
 

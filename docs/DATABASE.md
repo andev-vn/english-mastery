@@ -36,6 +36,7 @@ Seed: [`supabase/seed.sql`](../supabase/seed.sql), **generated** from `src/data`
 | Assessment | `assessments`, `assessment_questions`, `assessment_results` | | Estimated level + per-skill scores |
 | Gamification | `achievements`, `user_achievements` | | `metric` + `goal` mirror `src/data/achievements.ts` |
 | AI | `ai_conversations`, `ai_messages` | uuid | Composite FK `(conversation_id, user_id)` so a message always belongs to its owner's conversation |
+| | `ai_usage_events` | identity | One row per AI request (action, model, tokens); written only by the Edge Function, readable by its owner; used for rate limits |
 
 A new row in `auth.users` fires `handle_new_user()` (security definer), which creates the `profiles`,
 `learning_goals` and `learning_streaks` rows. The display name comes from sign-up metadata.
@@ -92,6 +93,11 @@ Also:
   placement scoring parity with `scorePlacement()`, summary.
 - `supabase/tests/learning-sync.test.ts`: the client's row mapping for `user_vocabulary` and `user_answers` against
   the real schema.
+- `supabase/tests/vocabulary-sync.test.ts`: `sync_vocabulary`: newer-wins upserts and deletes, device time kept,
+  future times clamped, unknown words skipped, RLS isolation.
+- `supabase/tests/ai-usage.test.ts`: learners read only their own AI usage and cannot write or delete it.
+- `supabase/tests/ai-tutor.test.ts`: the Edge Function's request handling (validation, auth, limits, conversations,
+  refusals) with a fake provider.
 
 Run them with `npm test`.
 

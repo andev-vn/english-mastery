@@ -47,4 +47,29 @@ describe('progressStore', () => {
     expect(store().activity[0]?.title).toContain('3');
     expect(store().totalXp).toBe(0); // XP is granted per card, not again for the session.
   });
+
+  it('adopts newer account copies of words but keeps newer local changes', () => {
+    const card = (wordId: string, updatedAt: string, favorite = false) => ({
+      wordId, repetitions: 0, easeFactor: 2.5, intervalDays: 0, lapses: 0, favorite, nextReviewAt: updatedAt, updatedAt,
+    });
+    useProgressStore.setState({
+      cards: { a: card('a', '2026-11-24T08:00:00.000Z'), b: card('b', '2026-11-24T10:00:00.000Z') },
+      removedWords: { c: '2026-11-24T08:00:00.000Z', d: '2026-11-24T12:00:00.000Z', e: '2026-11-24T08:00:00.000Z' },
+    });
+    store().applyServerCards(
+      [
+        card('a', '2026-11-24T09:00:00+00:00', true), // newer on the server → adopted (offset format from Postgres)
+        card('b', '2026-11-24T09:00:00+00:00', true), // older → local edit stays
+        card('c', '2026-11-24T09:00:00+00:00', true), // deletion refused: changed elsewhere afterwards → restored
+        card('d', '2026-11-24T09:00:00+00:00', true), // a newer deletion is still pending here → stays deleted
+      ],
+      ['c', 'e'],
+    );
+    const s = store();
+    expect(s.cards.a?.favorite).toBe(true);
+    expect(s.cards.b?.favorite).toBe(false);
+    expect(s.cards.c?.favorite).toBe(true);
+    expect(s.cards.d).toBeUndefined();
+    expect(Object.keys(s.removedWords).sort()).toEqual(['d']);
+  });
 });

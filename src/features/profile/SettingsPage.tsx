@@ -10,6 +10,7 @@ import { Checkbox, RadioGroup } from '@/components/ui/Choice';
 import { Modal } from '@/components/ui/Dialog';
 import { Input, Select } from '@/components/ui/Field';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { OfflineDataCard } from './OfflineDataCard';
 import { toast } from '@/components/ui/Toast';
 import { isIos, isStandalone, useInstallPrompt } from '@/lib/useInstallPrompt';
 import { useProgressStore } from '@/stores/progressStore';
@@ -134,10 +135,17 @@ export default function SettingsPage() {
         </Card>
       </section>
 
+      <section aria-labelledby="s-offline">
+        <SectionTitle id="s-offline" title="Dữ liệu ngoại tuyến" />
+        <OfflineDataCard />
+      </section>
+
       <section aria-labelledby="s-data">
         <SectionTitle id="s-data" title="Dữ liệu" />
         <Card className="flex flex-col gap-3">
-          <p className="text-sm text-text-subtle">Tiến độ của bạn được lưu cục bộ trên trình duyệt này. Xoá dữ liệu trình duyệt cũng sẽ xoá tiến độ.</p>
+          <p className="text-sm text-text-subtle">
+            Tiến độ được lưu trên trình duyệt này. Xoá dữ liệu trình duyệt cũng sẽ xoá tiến độ, trừ phần đã đồng bộ lên tài khoản.
+          </p>
           <Button variant="outline" className="text-danger" leftIcon={<Trash2 className="size-4" />} onClick={() => setConfirmReset(true)}>
             Xoá toàn bộ tiến độ
           </Button>

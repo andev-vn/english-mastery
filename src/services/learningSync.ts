@@ -1,15 +1,16 @@
 import { mergeVocabulary } from '@/lib/vocabularyMerge';
 import { requireSupabase } from '@/services/supabase/client';
-import type { Tables, TablesInsert } from '@/services/supabase/database.types';
+import type { Json, Tables, TablesInsert } from '@/services/supabase/database.types';
+import { unwrap } from '@/services/progressSync';
+import { enqueue, registerSyncHandler } from '@/services/sync/syncQueue';
 import { useProgressStore } from '@/stores/progressStore';
 import type { ReviewCard } from '@/types/progress';
 
 /**
  * Server-side persistence of learning data for signed-in users:
- * - saved words + spaced-repetition state  → user_vocabulary (merged per word on sign-in, then written through)
+ * - saved words + spaced-repetition state → user_vocabulary (merged per word on sign-in, then every
+ *   change is queued and sent through the conflict-safe sync_vocabulary RPC)
  * (Exercise answers are recorded by the submit_exercise RPC — see progressSync.ts.)
- * Writes made while offline stay on the device and are reconciled at the next sign-in;
- * the durable offline queue arrives with Phase 6.
  */
 
 type VocabularyRow = Tables<'user_vocabulary'>;
@@ -43,19 +44,35 @@ export function rowToCard(row: VocabularyRow): ReviewCard {
   };
 }
 
-async function upsertCards(userId: string, cards: ReviewCard[]) {
-  if (cards.length === 0) return;
-  const supabase = await requireSupabase();
-  const { error } = await supabase.from('user_vocabulary').upsert(cards.map((c) => cardToRow(userId, c)), { onConflict: 'user_id,vocabulary_id' });
-  if (error) throw error;
+export interface VocabularySyncPayload {
+  cards: TablesInsert<'user_vocabulary'>[];
+  deleted: { vocabulary_id: string; deleted_at: string }[];
 }
 
-async function deleteCards(userId: string, wordIds: string[]) {
-  if (wordIds.length === 0) return;
+/** The parts of a row the RPC reads (user_id comes from the session, never from the device). */
+const rpcCard = ({ user_id: _user, ...row }: TablesInsert<'user_vocabulary'>) => row;
+
+const isRow = (v: unknown): v is VocabularyRow =>
+  typeof v === 'object' && v !== null && typeof (v as VocabularyRow).vocabulary_id === 'string' && typeof (v as VocabularyRow).updated_at === 'string';
+
+/**
+ * Sends card changes and deletions through sync_vocabulary, which applies each one only if it is newer
+ * than the account's copy, then adopts the account's copies that turned out newer.
+ */
+export async function sendVocabularyChanges(payload: VocabularySyncPayload): Promise<void> {
+  if (payload.cards.length === 0 && payload.deleted.length === 0) return;
   const supabase = await requireSupabase();
-  const { error } = await supabase.from('user_vocabulary').delete().eq('user_id', userId).in('vocabulary_id', wordIds);
-  if (error) throw error;
+  const data = unwrap(
+    await supabase.rpc('sync_vocabulary', { p_cards: payload.cards.map(rpcCard) as unknown as Json, p_deleted: payload.deleted as unknown as Json }),
+  );
+  const newer = data && typeof data === 'object' && !Array.isArray(data) && Array.isArray(data.newer) ? data.newer.filter(isRow) : [];
+  useProgressStore.getState().applyServerCards(
+    newer.map(rowToCard),
+    payload.deleted.map((d) => d.vocabulary_id),
+  );
 }
+
+registerSyncHandler<VocabularySyncPayload>('sync_vocabulary', (payload) => sendVocabularyChanges(payload));
 
 /** Merges saved words between this device and the account (see mergeVocabulary for the rules). */
 export async function syncVocabularyOnSignIn(userId: string): Promise<void> {
@@ -64,30 +81,35 @@ export async function syncVocabularyOnSignIn(userId: string): Promise<void> {
   if (error) throw error;
   const { cards, removedWords } = useProgressStore.getState();
   const merged = mergeVocabulary(cards, data.map(rowToCard), removedWords);
-  await upsertCards(userId, merged.toPush);
-  await deleteCards(userId, merged.toDelete);
   // Tombstones are resolved once the server no longer has those words.
   const remoteIds = new Set(data.map((r) => r.vocabulary_id));
   const resolved = Object.keys(removedWords).filter((id) => !remoteIds.has(id) || merged.toDelete.includes(id));
   useProgressStore.getState().applyMergedCards(merged.cards, resolved);
+  await sendVocabularyChanges({
+    cards: merged.toPush.map((c) => cardToRow(userId, c)),
+    deleted: merged.toDelete.map((id) => ({ vocabulary_id: id, deleted_at: removedWords[id] ?? new Date().toISOString() })),
+  });
 }
 
-/** While signed in, writes card changes through to the account (debounced, batched). */
-export function watchVocabularyChanges(userId: string, onError: (error: unknown) => void): () => void {
+/**
+ * While signed in, queues card changes for the account (debounced, batched). The queue keeps them
+ * across reloads and offline periods.
+ */
+export function watchVocabularyChanges(userId: string): () => void {
   let previous = useProgressStore.getState().cards;
   let timer: number | undefined;
   const dirty = new Set<string>();
   const removed = new Set<string>();
 
   const flush = () => {
-    const { cards } = useProgressStore.getState();
-    const toUpsert = [...dirty].map((id) => cards[id]).filter((c): c is ReviewCard => Boolean(c));
-    const toDelete = [...removed];
+    const { cards, removedWords } = useProgressStore.getState();
+    const payload: VocabularySyncPayload = {
+      cards: [...dirty].map((id) => cards[id]).filter((c): c is ReviewCard => Boolean(c)).map((c) => cardToRow(userId, c)),
+      deleted: [...removed].map((id) => ({ vocabulary_id: id, deleted_at: removedWords[id] ?? new Date().toISOString() })),
+    };
     dirty.clear();
     removed.clear();
-    void Promise.all([upsertCards(userId, toUpsert), deleteCards(userId, toDelete)])
-      .then(() => useProgressStore.getState().applyMergedCards(useProgressStore.getState().cards, toDelete))
-      .catch(onError);
+    if (payload.cards.length || payload.deleted.length) void enqueue('sync_vocabulary', payload);
   };
 
   const unsubscribe = useProgressStore.subscribe((state) => {

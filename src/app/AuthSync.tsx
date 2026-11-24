@@ -4,6 +4,7 @@ import { syncProfileOnSignIn, watchProfileChanges } from '@/services/accountSync
 import { syncVocabularyOnSignIn, watchVocabularyChanges } from '@/services/learningSync';
 import { syncProgressOnSignIn } from '@/services/progressSync';
 import { getSupabase } from '@/services/supabase/client';
+import { setRejectedListener, startSyncQueue } from '@/services/sync/syncQueue';
 import { useAuthStore } from '@/stores/authStore';
 
 /**
@@ -22,6 +23,14 @@ export function AuthSync() {
       toast.error('Chưa đồng bộ được dữ liệu với tài khoản. Ứng dụng sẽ thử lại lần sau.');
     };
 
+    let lastRejectedToast = 0;
+    setRejectedListener(() => {
+      // Rare (e.g. content that was unpublished): the progress is still kept on this device.
+      if (Date.now() - lastRejectedToast < 60_000) return;
+      lastRejectedToast = Date.now();
+      toast.error('Máy chủ không nhận một phần tiến độ (nội dung có thể đã thay đổi). Dữ liệu trên thiết bị vẫn được giữ.');
+    });
+
     const onSession = (user: { id: string; email?: string | null } | null) => {
       stopWatching?.();
       stopWatching = undefined;
@@ -30,22 +39,48 @@ export function AuthSync() {
         return;
       }
       setSignedIn({ id: user.id, email: user.email ?? null });
-      // Defer: Supabase must not be called from inside its own auth callback.
-      window.setTimeout(() => {
-        if (cancelled) return;
+      // The queue can send operations saved earlier for this account right away.
+      const stopQueue = startSyncQueue();
+      let stopWatchers: (() => void) | undefined;
+      let stopWaiting: (() => void) | undefined;
+      stopWatching = () => {
+        stopWaiting?.();
+        stopWatchers?.();
+        stopQueue();
+      };
+      const isCurrent = () => !cancelled && useAuthStore.getState().user?.id === user.id;
+
+      const reconcile = () => {
         void Promise.allSettled([syncProfileOnSignIn(user.id), syncVocabularyOnSignIn(user.id), syncProgressOnSignIn()]).then((results) => {
           const failed = results.find((r) => r.status === 'rejected');
           if (failed) reportSyncError(failed.reason);
           // Watch for later edits only after the initial reconcile, so pulled data is not pushed back.
-          if (cancelled || useAuthStore.getState().user?.id !== user.id) return;
-          stopWatching?.();
+          if (!isCurrent()) return;
           const stopProfile = watchProfileChanges(user.id, reportSyncError);
-          const stopVocabulary = watchVocabularyChanges(user.id, reportSyncError);
-          stopWatching = () => {
+          const stopVocabulary = watchVocabularyChanges(user.id);
+          stopWatchers = () => {
             stopProfile();
             stopVocabulary();
           };
         });
+      };
+
+      // Defer: Supabase must not be called from inside its own auth callback.
+      window.setTimeout(() => {
+        if (!isCurrent()) return;
+        if (navigator.onLine) {
+          reconcile();
+          return;
+        }
+        // Opened offline with a stored session: everything stays on the device (and changes made
+        // meanwhile are queued); reconcile with the account once the connection is back.
+        const onOnline = () => {
+          stopWaiting?.();
+          stopWaiting = undefined;
+          if (isCurrent()) reconcile();
+        };
+        window.addEventListener('online', onOnline);
+        stopWaiting = () => window.removeEventListener('online', onOnline);
       }, 0);
     };
 
@@ -76,6 +111,7 @@ export function AuthSync() {
       cancelled = true;
       unsubscribeAuth?.();
       stopWatching?.();
+      setRejectedListener(undefined);
     };
   }, []);
 

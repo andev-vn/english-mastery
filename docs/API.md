@@ -45,7 +45,7 @@ Email links go to `/auth/callback?next=…`, which waits for the PKCE code excha
 
 ## Progress (implemented)
 
-Local, for every learner: `src/stores/progressStore.ts` (Zustand, persisted to `localStorage` key `em-progress`).
+Local, for every learner: `src/stores/progressStore.ts` (Zustand, persisted to IndexedDB key `em-progress`; see docs/PWA.md).
 
 | Action | Effect |
 | --- | --- |
@@ -55,8 +55,10 @@ Local, for every learner: `src/stores/progressStore.ts` (Zustand, persisted to `
 | `saveWord` / `removeWord` / `toggleFavorite` / `reviewWord(id, grade)` | Vocabulary and SRS |
 | `finishReviewSession(...)` / `recordAssessment(record)` | Activity log, assessment history |
 | `mergeServerProgress(summary)` | Applies the account's progress, never lowering local values |
+| `applyServerCards(newer, processedDeletions)` | Adopts account copies of words that are newer than the device's |
 
-Server, for signed-in users: `src/services/progressSync.ts` calls these Postgres RPCs (`security definer`,
+Server, for signed-in users: `src/services/progressSync.ts` queues these Postgres RPC calls in the durable sync queue
+(`src/services/sync/syncQueue.ts`), which sends them when online (`security definer`,
 `authenticated` only, idempotent per `p_op_id`, `p_tz` = IANA time zone for streak days):
 
 | RPC | Validates / does |
@@ -67,24 +69,38 @@ Server, for signed-in users: `src/services/progressSync.ts` calls these Postgres
 | `submit_assessment(p_assessment_id, p_answers, p_duration_seconds, p_op_id, p_tz)` | Grades the placement test, stores `assessment_results` (no XP) |
 | `get_progress_summary(p_tz)` | Totals, streak, completed lessons, achievements, last 60 days |
 
-Every RPC returns the progress summary, which the client merges back. Sign-in runs `syncProgressOnSignIn()`:
-upload lessons completed as a guest, then restore the account's progress.
+| `sync_vocabulary(p_cards, p_deleted)` | `security invoker` (RLS applies). Upserts a word only if newer than the server copy, deletes only if the server copy is not newer; device times clamped to `now()`; unknown words skipped; returns `{ newer: rows[] }` |
 
-## Planned server endpoints
+Every progress RPC returns the progress summary, which the client merges back. Sign-in runs `syncProgressOnSignIn()`:
+upload lessons completed as a guest, then restore the account's progress. The server dates an operation by when it
+arrives, so activity done offline counts toward the server streak on the day it syncs (the device keeps the real day).
 
-| Endpoint | Type | Purpose |
+## AI tutor (optional): `functions/v1/ai-tutor`
+
+Supabase Edge Function (`supabase/functions/ai-tutor`). The provider key is a server secret; the browser only sends the
+learner's session. `POST` JSON:
+
+| `action` | Body | Response |
 | --- | --- | --- |
-| `functions/v1/ai-tutor` | Supabase Edge Function | Optional AI proxy; provider key stays server-side; per-user rate limit |
+| `status` | none (no session needed) | `{ available, provider, limits }` |
+| `chat` | `level`, `message` (max 2000), `conversationId?` | `{ conversationId, reply }`; both turns saved in `ai_conversations` / `ai_messages`; the last 20 turns are sent as context |
+| `correct_writing` | `level`, `text` (max 4000), `taskVi?` | `{ feedback: { correctedText, issues[{original, suggestion, explanationVi}], overallVi } }` |
+| `evaluate_answer` | `level`, `question`, `answer` | `{ evaluation: { verdict: good/acceptable/needs_work, feedbackVi, improvedAnswer } }` |
 
-### AI provider interface (Phase 6)
+Errors are `{ code, message }`: `400 invalid_request`, `401 not_signed_in`, `404 conversation_not_found`,
+`429 rate_limited_day | rate_limited_minute` (default 30/day and 5/min per user, counted in `ai_usage_events`),
+`422 ai_refused`, `502 ai_failed`, `503 ai_unavailable` (no provider key). The client (`src/services/aiTutor.ts`)
+maps them to Vietnamese messages; AI buttons are only rendered when `status` says available and the learner is signed in.
+
+Provider interface (`supabase/functions/ai-tutor/provider.ts`), implemented for Claude in `anthropic.ts`:
 
 ```ts
 interface AIProvider {
-  generateResponse(input: TutorContext & { messages: ChatMessage[] }): Promise<string>;
-  correctWriting(input: TutorContext & { text: string }): Promise<WritingFeedback>;
-  evaluateAnswer(input: TutorContext & { question: string; answer: string }): Promise<AnswerEvaluation>;
-  generateExercises(input: TutorContext & { topic: string; count: number }): Promise<Question[]>;
+  generateResponse(input: TutorContext & { messages: ChatTurn[] }): Promise<Result<string>>;
+  correctWriting(input: TutorContext & { text: string; taskVi?: string }): Promise<Result<AIWritingFeedback>>;
+  evaluateAnswer(input: TutorContext & { question: string; answer: string }): Promise<Result<AIAnswerEvaluation>>;
 }
 ```
 
-When no provider is configured the Edge Function returns `503 { code: 'ai_unavailable' }` and the UI hides AI actions.
+Structured results use JSON-schema structured outputs (Zod schemas). AI-generated exercises are not implemented:
+generated questions would need the same validation as seeded content before the server could grade them.

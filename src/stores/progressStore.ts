@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { toDayKey } from '@/lib/date';
+import { idbStorage } from '@/lib/idbStorage';
 import { uid } from '@/lib/cn';
+import { cardUpdatedAt } from '@/lib/vocabularyMerge';
 import { createCard, isDue, scheduleReview, type ReviewGrade } from '@/lib/srs';
 import { exerciseXp, XP_LESSON_COMPLETE, XP_PER_DUE_REVIEW } from '@/lib/xp';
 import type {
@@ -17,8 +19,9 @@ import type {
 } from '@/types/progress';
 
 /**
- * Local (guest) learning progress.
- * Phase 1 persists to localStorage; Phase 6 moves this to IndexedDB with a sync queue to Supabase.
+ * Learning progress on this device, persisted to IndexedDB (src/lib/idbStorage.ts).
+ * Hydration is asynchronous: the app renders only after `useProgressStore.persist.hasHydrated()`
+ * (see HydrationGate). Signed-in changes reach the server through the sync queue.
  */
 export interface ProgressState {
   profile: LearnerProfile;
@@ -77,6 +80,11 @@ export interface ProgressState {
   mergeServerProgress: (summary: { completedLessonIds: string[]; totalXp: number; days: { day: string; minutes: number; xp: number }[] }) => void;
   /** Applies the result of merging with the account; `resolved` deletions are forgotten. */
   applyMergedCards: (cards: Record<string, ReviewCard>, resolved: string[]) => void;
+  /**
+   * Adopts account copies that are newer than this device's (from sync_vocabulary) and forgets the
+   * tombstones of deletions the server has processed.
+   */
+  applyServerCards: (newer: ReviewCard[], processedDeletions: string[]) => void;
   resetProgress: () => void;
 }
 
@@ -296,12 +304,29 @@ export const useProgressStore = create<ProgressState>()(
           return { cards, removedWords };
         }),
 
+      applyServerCards: (newer, processedDeletions) =>
+        set((s) => {
+          const cards = { ...s.cards };
+          const removedWords = { ...s.removedWords };
+          for (const id of processedDeletions) delete removedWords[id];
+          for (const card of newer) {
+            const local = cards[card.wordId];
+            // A pending (newer) deletion on this device also counts as a local change.
+            const localTime = local ? cardUpdatedAt(local) : Date.parse(removedWords[card.wordId] ?? '') || 0;
+            if (localTime < cardUpdatedAt(card)) {
+              cards[card.wordId] = card;
+              delete removedWords[card.wordId];
+            }
+          }
+          return { cards, removedWords };
+        }),
+
       resetProgress: () => set({ ...initialData }),
     }),
     {
       name: 'em-progress',
       version: 1,
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => idbStorage),
       partialize: (s): Data => ({
         profile: s.profile,
         lessons: s.lessons,

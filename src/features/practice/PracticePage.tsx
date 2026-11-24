@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { BookOpenText, Brain, ChevronRight, Code2, Languages, PenLine, Trophy } from 'lucide-react';
+import { BookOpenText, Bot, Brain, ChevronRight, Code2, Languages, PenLine, Trophy } from 'lucide-react';
 import { Link } from 'react-router';
 import { skillMeta as skillAreaMeta } from '@/features/skills/meta';
 import { SKILLS } from '@/types/content';
@@ -66,7 +66,7 @@ export default function PracticePage() {
           );
         })}
       </section>
-      <Link to="/developer" className="mb-6 block">
+      <Link to="/developer" className="mb-2.5 block">
         <Card interactive padding="sm" className="flex items-center gap-3.5">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-secondary-soft text-secondary">
             <Code2 className="size-5" aria-hidden />
@@ -74,6 +74,18 @@ export default function PracticePage() {
           <span className="min-w-0 flex-1">
             <span className="block font-semibold">Tiếng Anh cho lập trình viên</span>
             <span className="block text-sm text-text-muted">Stand-up, code review, báo cáo lỗi, phỏng vấn</span>
+          </span>
+          <ChevronRight className="size-5 shrink-0 text-text-muted" aria-hidden />
+        </Card>
+      </Link>
+      <Link to="/tutor" className="mb-6 block">
+        <Card interactive padding="sm" className="flex items-center gap-3.5">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">
+            <Bot className="size-5" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">Gia sư AI</span>
+            <span className="block text-sm text-text-muted">Luyện hội thoại, hỏi ngữ pháp (cần đăng nhập và kết nối mạng)</span>
           </span>
           <ChevronRight className="size-5 shrink-0 text-text-muted" aria-hidden />
         </Card>
