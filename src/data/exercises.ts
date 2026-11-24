@@ -1,6 +1,7 @@
 import type { Exercise } from '@/types/content';
 import { exercisesA1 } from './exercises-a1';
 import { exercisesA2 } from './exercises-a2';
+import { exercisesSkills } from './exercises-skills';
 
 const baseExercises: Exercise[] = [
   {
@@ -710,4 +711,4 @@ const baseExercises: Exercise[] = [
   },
 ];
 
-export const exercises: Exercise[] = [...baseExercises, ...exercisesA1, ...exercisesA2];
+export const exercises: Exercise[] = [...baseExercises, ...exercisesA1, ...exercisesA2, ...exercisesSkills];

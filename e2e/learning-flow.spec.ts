@@ -144,3 +144,54 @@ test('placement test produces an estimate and is saved to history', async ({ pag
   await page.goto('/dashboard');
   await expect(page.getByRole('link', { name: /Chưa chắc trình độ của mình/ })).toHaveCount(0);
 });
+
+test('listening activity: questions return to the activity', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/practice');
+  await page.getByRole('link', { name: /Nghe/ }).first().click();
+  await expect(page).toHaveURL(/\/listening$/);
+  await page.getByRole('link', { name: /Ở quán cà phê/ }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Ở quán cà phê' })).toBeVisible();
+  await page.getByRole('link', { name: 'Trả lời câu hỏi' }).click();
+  await page.getByRole('radio', { name: /iced coffee with milk and a croissant/ }).click();
+  await page.getByRole('button', { name: 'Kiểm tra' }).click();
+  await page.getByRole('button', { name: 'Tiếp tục' }).click();
+  await page.getByRole('radio', { name: /65,000/ }).click();
+  await page.getByRole('button', { name: 'Kiểm tra' }).click();
+  await page.getByRole('button', { name: 'Tiếp tục' }).click();
+  await page.getByRole('radio', { name: /False/ }).click();
+  await page.getByRole('button', { name: 'Kiểm tra' }).click();
+  await page.getByRole('button', { name: 'Xem kết quả' }).click();
+  await expect(page.getByText('100%')).toBeVisible();
+  await page.getByRole('link', { name: 'Quay lại bài luyện' }).click();
+  await expect(page).toHaveURL(/\/listening\/listen-a1-cafe$/);
+});
+
+test('writing activity gives rule-based feedback and saves journal entries', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/writing/write-a2-journal');
+  await page.getByLabel('Bài viết của bạn').fill('today i go to the office and i am agree with my manager about the informations we discussed about yesterday at work');
+  await page.getByRole('button', { name: 'Kiểm tra bài viết' }).click();
+  await expect(page.getByText('Đại từ "I" luôn viết hoa.')).toBeVisible();
+  await expect(page.getByText('"Discuss" không đi với "about".')).toBeVisible();
+  await expect(page.getByText(/Không thay thế được nhận xét của giáo viên/)).toBeVisible();
+  await page.getByRole('button', { name: 'Lưu vào nhật ký' }).click();
+  await expect(page.getByRole('heading', { name: 'Nhật ký của bạn (1)' })).toBeVisible();
+});
+
+test('speaking activity works with typed answers when speech recognition is unavailable', async ({ page }) => {
+  await page.addInitScript(() => {
+    // Simulate a browser without the Web Speech recognition API.
+    Object.defineProperty(window, 'webkitSpeechRecognition', { value: undefined, configurable: true });
+    Object.defineProperty(window, 'SpeechRecognition', { value: undefined, configurable: true });
+  });
+  await onboard(page);
+  await page.goto('/speaking/speak-a1-introduce');
+  await expect(page.getByText('Trình duyệt này chưa hỗ trợ nhận dạng giọng nói.', { exact: false })).toBeVisible();
+  await page.getByLabel('Gõ câu trả lời').fill("Hi Anna, I'm Lan. Nice to meet you.");
+  await page.getByRole('button', { name: 'Kiểm tra câu trả lời' }).click();
+  await expect(page.getByText(/Mức khớp nội dung với câu gợi ý/)).toBeVisible();
+  await expect(page.getByText("Hi Anna, I'm Minh. Nice to meet you.")).toBeVisible();
+  await page.getByRole('button', { name: 'Câu tiếp theo' }).click();
+  await expect(page.getByText('Where are you from?', { exact: false })).toBeVisible();
+});

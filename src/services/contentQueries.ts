@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { CefrLevel } from '@/types/content';
+import type { CefrLevel, Skill } from '@/types/content';
 import { contentRepository } from './contentRepository';
 
 /** Published content changes rarely: cache for the session; ContentSync invalidates after a remote refresh. */
@@ -19,6 +19,8 @@ export const contentKeys = {
   exercise: (id: string) => ['content', 'exercise', id] as const,
   grammarTopics: ['content', 'grammar-topics'] as const,
   assessment: (id: string) => ['content', 'assessment', id] as const,
+  activities: (skill?: Skill) => ['content', 'activities', skill ?? 'all'] as const,
+  activity: (id: string) => ['content', 'activity', id] as const,
 };
 
 export const useLevels = () =>
@@ -53,3 +55,9 @@ export const useGrammarTopics = () =>
 
 export const useAssessment = (id: string) =>
   useQuery({ queryKey: contentKeys.assessment(id), queryFn: () => contentRepository.getAssessment(id).then((a) => a ?? null), ...STATIC });
+
+export const useActivities = (skill?: Skill) =>
+  useQuery({ queryKey: contentKeys.activities(skill), queryFn: () => contentRepository.getActivities(skill), ...STATIC });
+
+export const useActivity = (id: string) =>
+  useQuery({ queryKey: contentKeys.activity(id), queryFn: () => contentRepository.getActivity(id).then((a) => a ?? null), ...STATIC });

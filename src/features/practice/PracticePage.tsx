@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { BookOpenText, Brain, ChevronRight, Code2, Languages, PenLine, Trophy } from 'lucide-react';
 import { Link } from 'react-router';
+import { skillMeta as skillAreaMeta } from '@/features/skills/meta';
+import { SKILLS } from '@/types/content';
 import { LevelBadge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -46,6 +48,38 @@ export default function PracticePage() {
   return (
     <div className="animate-fade-up">
       <PageHeader title="Luyện tập" subtitle={`${query.data.length} bài · ${attempts.length} lượt đã làm`} />
+
+      <section aria-label="Kỹ năng" className="mb-4 grid grid-cols-2 gap-2.5">
+        {SKILLS.map((skill) => {
+          const meta = skillAreaMeta[skill];
+          const Icon = meta.icon;
+          return (
+            <Link key={skill} to={`/${skill}`} className="block">
+              <Card interactive padding="sm" className="flex h-full flex-col gap-2">
+                <span className={`flex size-10 items-center justify-center rounded-xl ${meta.tone}`}>
+                  <Icon className="size-5" aria-hidden />
+                </span>
+                <span className="font-semibold">{meta.label}</span>
+                <span className="text-xs text-text-muted">{meta.description}</span>
+              </Card>
+            </Link>
+          );
+        })}
+      </section>
+      <Link to="/developer" className="mb-6 block">
+        <Card interactive padding="sm" className="flex items-center gap-3.5">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-secondary-soft text-secondary">
+            <Code2 className="size-5" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold">Tiếng Anh cho lập trình viên</span>
+            <span className="block text-sm text-text-muted">Stand-up, code review, báo cáo lỗi, phỏng vấn</span>
+          </span>
+          <ChevronRight className="size-5 shrink-0 text-text-muted" aria-hidden />
+        </Card>
+      </Link>
+
+      <h2 className="mb-3 text-[17px] font-bold">Bài tập</h2>
       <Tabs label="Lọc theo kỹ năng" value={filter} onChange={setFilter} items={tabs} className="mb-5" />
 
       {list.length === 0 ? (

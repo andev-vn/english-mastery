@@ -7,6 +7,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { ProgressBar } from '@/components/ui/Progress';
 import { EmptyState, ErrorState, PageSkeleton } from '@/components/ui/States';
 import { useExercise } from '@/services/contentQueries';
+import { safeNextPath } from '@/services/auth/authService';
 import { syncExerciseSubmitted } from '@/services/progressSync';
 import { useProgressStore } from '@/stores/progressStore';
 import { FeedbackPanel } from './engine/FeedbackPanel';
@@ -18,6 +19,8 @@ export default function PracticeSessionPage() {
   const { exerciseId = '' } = useParams();
   const [params] = useSearchParams();
   const fromLesson = params.get('lesson');
+  // Skill activities link here with ?from=/listening/<id> etc.; only same-origin paths are accepted.
+  const fromActivity = safeNextPath(params.get('from'), '');
   const navigate = useNavigate();
   const query = useExercise(exerciseId);
   const exercise = query.data;
@@ -26,7 +29,7 @@ export default function PracticeSessionPage() {
   const [summary, setSummary] = useState<{ xp: number; duration: number } | null>(null);
   const [confirmExit, setConfirmExit] = useState(false);
 
-  const exitTo = fromLesson ? `/lessons/${fromLesson}` : '/practice';
+  const exitTo = fromLesson ? `/lessons/${fromLesson}` : fromActivity || '/practice';
 
   if (query.isPending) return <PageSkeleton />;
   if (query.isError) return <ErrorState onRetry={() => void query.refetch()} />;
@@ -68,7 +71,13 @@ export default function PracticeSessionPage() {
           setSummary(null);
           session.restart();
         }}
-        continueTo={fromLesson ? { to: `/lessons/${fromLesson}`, label: 'Quay lại bài học' } : { to: '/practice', label: 'Tiếp tục luyện tập' }}
+        continueTo={
+          fromLesson
+            ? { to: `/lessons/${fromLesson}`, label: 'Quay lại bài học' }
+            : fromActivity
+              ? { to: fromActivity, label: 'Quay lại bài luyện' }
+              : { to: '/practice', label: 'Tiếp tục luyện tập' }
+        }
       />
     );
   }

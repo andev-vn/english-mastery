@@ -3,6 +3,7 @@
  * The bundled dataset stays the single source of truth; the SQL is generated, never hand-edited.
  */
 import { achievements } from '../src/data/achievements';
+import { activities } from '../src/data/activities';
 import { assessments } from '../src/data/assessments';
 import { levels, modules } from '../src/data/curriculum';
 import { exercises } from '../src/data/exercises';
@@ -188,6 +189,21 @@ export function buildSeedSql(): string {
           explanation_vi: q.explanationVi,
         })),
       ),
+      ['id'],
+    ),
+  );
+
+  parts.push(
+    upsert(
+      'skill_activities',
+      activities.map((a) => {
+        const { id, skill, level, category, title, titleVi, description, order, ...rest } = a;
+        const { exerciseId, ...payload } = rest as typeof rest & { exerciseId?: string };
+        return {
+          id, skill, level_id: level, category, title, title_vi: titleVi, description, sort_order: order,
+          exercise_id: exerciseId ?? null, payload: { json: payload },
+        };
+      }),
       ['id'],
     ),
   );

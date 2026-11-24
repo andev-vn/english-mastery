@@ -15,7 +15,7 @@ import { useSettingsStore } from '@/stores/settingsStore';
 import type { ActivityKind } from '@/types/progress';
 import { WeeklyChart } from './WeeklyChart';
 
-const activityIcon: Record<ActivityKind, typeof BookCheck> = { lesson: BookCheck, exercise: Dumbbell, review: Brain };
+const activityIcon: Record<ActivityKind, typeof BookCheck> = { lesson: BookCheck, exercise: Dumbbell, review: Brain, skill: Languages };
 
 export default function DashboardPage() {
   const state = useProgressStore();

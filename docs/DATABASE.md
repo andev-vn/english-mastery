@@ -5,6 +5,7 @@ Supabase Postgres. Migrations, in order:
 2. [`20261123010000_api_grants.sql`](../supabase/migrations/20261123010000_api_grants.sql): explicit least-privilege grants (new projects no longer expose tables automatically)
 3. [`20261123020000_content_references.sql`](../supabase/migrations/20261123020000_content_references.sql): `lessons.vocabulary_ids` / `exercise_ids`, `grammar_topics.summary_vi`
 4. [`20261124000000_progress_rpcs.sql`](../supabase/migrations/20261124000000_progress_rpcs.sql): SQL answer grading, progress RPCs, streaks, achievements, `assessments.estimated_minutes`, `assessment_results.mastered_level` / `level_scores` / `client_op_id`
+5. [`20261124010000_skill_activities.sql`](../supabase/migrations/20261124010000_skill_activities.sql): `skill_activities` (listening/speaking/reading/writing content, type-specific `payload`, FK to the comprehension exercise), RLS read-published, grants
 Seed: [`supabase/seed.sql`](../supabase/seed.sql), **generated** from `src/data` with `npm run db:seed:generate`. Don't edit it by hand.
 
 ## Conventions

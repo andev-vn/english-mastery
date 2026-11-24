@@ -209,3 +209,87 @@ export interface Assessment {
   estimatedMinutes: number;
   questions: AssessmentQuestion[];
 }
+
+/* ---------- Skill activities (listening, speaking, reading, writing) ---------- */
+
+export const SKILLS = ['listening', 'speaking', 'reading', 'writing'] as const;
+export type Skill = (typeof SKILLS)[number];
+
+export const ACTIVITY_CATEGORIES = ['daily', 'work', 'developer', 'interview'] as const;
+export type ActivityCategory = (typeof ACTIVITY_CATEGORIES)[number];
+
+interface ActivityBase {
+  id: string;
+  level: CefrLevel;
+  category: ActivityCategory;
+  title: string;
+  titleVi: string;
+  description: string;
+  order: number;
+}
+
+/** A line of a listening script. Speakers A/B get different voices; N is a narrator/announcement. */
+export interface ScriptLine {
+  speaker: 'A' | 'B' | 'N';
+  en: string;
+  vi: string;
+}
+
+export interface ListeningActivity extends ActivityBase {
+  skill: 'listening';
+  lines: ScriptLine[];
+  /** Comprehension questions (an exercise graded by the exercise engine and the server). */
+  exerciseId: string;
+  /** Sentences for dictation practice (taken from the script). */
+  dictation: string[];
+  vocabularyIds: string[];
+}
+
+export interface ReadingActivity extends ActivityBase {
+  skill: 'reading';
+  paragraphs: { en: string; vi: string }[];
+  exerciseId: string;
+  vocabularyIds: string[];
+}
+
+export interface SpeakingTurn {
+  /** What the conversation partner says (read aloud). */
+  partner: string;
+  partnerVi: string;
+  /** A natural model answer. */
+  suggested: string;
+  hintVi?: string;
+}
+
+export interface SpeakingActivity extends ActivityBase {
+  skill: 'speaking';
+  scenarioVi: string;
+  partnerRole: string;
+  turns: SpeakingTurn[];
+  usefulPhrases: { en: string; vi: string }[];
+  grammarTipVi: string;
+}
+
+export const WRITING_TYPES = ['sentence', 'paragraph', 'journal', 'email', 'essay', 'workplace'] as const;
+export type WritingType = (typeof WRITING_TYPES)[number];
+
+export interface WritingCheck {
+  labelVi: string;
+  /** Satisfied when the text contains any of these (case-insensitive). */
+  anyOf: string[];
+}
+
+export interface WritingActivity extends ActivityBase {
+  skill: 'writing';
+  writingType: WritingType;
+  promptEn: string;
+  promptVi: string;
+  minWords: number;
+  maxWords: number;
+  checklist: WritingCheck[];
+  usefulPhrases: { en: string; vi: string }[];
+  sampleAnswer: string;
+}
+
+export type SkillActivity = ListeningActivity | ReadingActivity | SpeakingActivity | WritingActivity;
+
