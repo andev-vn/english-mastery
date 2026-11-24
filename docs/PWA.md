@@ -12,19 +12,43 @@
 - **Offline indicator**: top banner when `navigator.onLine` is false.
 - **Install**: Settings → Ứng dụng. Uses `beforeinstallprompt` on Chromium (Android/desktop); shows
   “Thêm vào MH chính” instructions on iOS Safari.
-- **Local data**: guest progress and settings in `localStorage` (works offline).
+- **Local data**: settings in `localStorage` (the theme is read synchronously by `index.html`).
 
-## Planned (Phase 6)
+## Offline data (Phase 6)
 
-- Move progress to IndexedDB (Dexie): downloaded lessons, local progress, guest data, **sync queue**.
-- Sync queue: each mutation gets a UUID `op_id`; server RPCs are idempotent on `op_id`; retry with backoff;
-  conflicts detected by `updated_at` (server wins unless the local change is newer, never silently overwriting newer data);
-  queue is bound to the user ID and paused/cleared on sign-out.
-- Runtime caching for Supabase content reads (`StaleWhileRevalidate`), **never** for authenticated user endpoints.
-- "Download for offline" per module once content moves to the database.
+IndexedDB database `english-mastery` (Dexie, `src/lib/db.ts`):
+
+| Store | Holds |
+| --- | --- |
+| `kv` | Learning progress (`em-progress`, the Zustand snapshot) via `src/lib/idbStorage.ts` |
+| `queue` | Server operations waiting to be sent (sync queue) |
+| `content` | The latest published content downloaded from Supabase |
+
+- **Migration**: on first start, a progress snapshot found in `localStorage` is copied to IndexedDB and removed.
+  If IndexedDB is unavailable or fails (private mode, quota), the app falls back to `localStorage` for the session.
+- **Hydration gate** (`src/app/HydrationGate.tsx`): the router and sync start only after progress has been read,
+  so an empty state can never be saved over the learner's data.
+- **Content**: bundled content works offline from the first visit. After each successful download from Supabase the
+  dataset is saved in IndexedDB and used at the next start (also offline); a schema number in the cache ignores copies
+  saved by an older app version. If the app starts offline it downloads once the connection returns.
+  Supabase requests are **not** cached by the service worker.
+- **Sync queue** (`src/services/sync/syncQueue.ts`), signed-in users only:
+  - every lesson completion, exercise submission, review session, placement test and vocabulary change is queued with
+    a UUID `op_id` (the RPCs are idempotent on it) and tied to the account that created it; it is never sent as another user;
+  - sent in order; network/5xx/401/408/429 errors are retried with exponential backoff (5 s to 10 min),
+    other 4xx are dropped (the server rejected the data) and counted in the UI;
+  - triggers: right after an action, `online`, app back in the foreground, every 30 s; one tab sends at a time (Web Locks);
+  - vocabulary uses `sync_vocabulary`, which applies a change only if it is newer than the account's copy and
+    returns newer server copies to adopt (no silent overwrite of newer data in either direction).
+- **UI**: the offline banner shows how many changes are waiting; Settings → *Dữ liệu ngoại tuyến* shows the sync state
+  ("Đồng bộ ngay"), the content source and download time ("Tải nội dung mới nhất"), storage usage and a
+  "Bảo vệ dữ liệu" button (`navigator.storage.persist()`).
+- **Opened offline with a stored session**: everything works from the device; the account reconcile runs when the
+  connection returns.
 
 ## Browser support notes
 
 - Install prompt: Chrome/Edge/Samsung Internet. iOS requires manual "Add to Home Screen".
 - Speech synthesis (pronunciation): widely supported; voice quality depends on the OS. A friendly message is shown if missing.
-- Speech recognition (Phase 5): Chromium + Safari only; text fallback planned.
+- Speech recognition (Phase 5): Chromium + Safari only; typed answers are the fallback.
+- IndexedDB: all current browsers. Web Locks (single sending tab) is optional; without it the server de-duplicates.

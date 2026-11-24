@@ -46,7 +46,15 @@ with them anyway (`src/lib/env.ts`). Without these variables the app runs in gue
    8 characters with letters and digits, matching the app's form validation and `supabase/config.toml`.
 6. The free tier's built-in email sender allows only a few emails per hour, which is fine for testing.
    For real users, configure custom SMTP (Authentication → Emails → SMTP), e.g. a free tier from an email provider.
-7. (Phase 6, optional) `npx supabase functions deploy ai-tutor` and `npx supabase secrets set AI_API_KEY=…`.
+7. Optional AI tutor:
+   ```
+   npx supabase functions deploy ai-tutor --use-api
+   npx supabase secrets set ANTHROPIC_API_KEY=<your key>     # never a VITE_* variable
+   npx supabase secrets set AI_MODEL=claude-opus-5-5         # optional; this is the default
+   npx supabase secrets set AI_DAILY_LIMIT=30                # optional; requests per user per 24 h
+   ```
+   Without `ANTHROPIC_API_KEY` the function answers `available: false` and the app shows "Gia sư AI chưa được bật".
+   AI usage is billed by the provider per token; the daily limit caps the cost per learner.
 
 ## Free-tier limits (check current values before launch — providers change them)
 

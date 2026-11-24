@@ -6,6 +6,7 @@ import { AuthSync } from './AuthSync';
 import { ContentSync } from './ContentSync';
 import { ThemeSync } from './ThemeSync';
 import { PwaPrompt } from './PwaPrompt';
+import { HydrationGate } from './HydrationGate';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,9 +18,11 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeSync />
-      <AuthSync />
-      <ContentSync />
-      <RouterProvider router={router} />
+      <HydrationGate>
+        <AuthSync />
+        <ContentSync />
+        <RouterProvider router={router} />
+      </HydrationGate>
       <Toaster />
       <PwaPrompt />
     </QueryClientProvider>

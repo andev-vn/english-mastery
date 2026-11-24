@@ -9,6 +9,7 @@ import { cn } from '@/lib/cn';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import { analyzeWriting, countWords, type IssueSeverity, type WritingFeedback } from '@/lib/writingFeedback';
 import { useProgressStore } from '@/stores/progressStore';
+import { AIWritingReview } from '@/features/tutor/AIReview';
 import { ActivityHeader } from './ActivityHeader';
 import { useActivityPage } from './useActivityPage';
 
@@ -186,6 +187,7 @@ export default function WritingActivityPage() {
       </div>
 
       {feedback && <Feedback feedback={feedback} min={activity.minWords} max={activity.maxWords} />}
+      {feedback && <AIWritingReview key={value} text={value} taskVi={activity.promptVi} />}
 
       <section aria-labelledby="sample">
         <button

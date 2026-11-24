@@ -195,3 +195,57 @@ test('speaking activity works with typed answers when speech recognition is unav
   await page.getByRole('button', { name: 'Câu tiếp theo' }).click();
   await expect(page.getByText('Where are you from?', { exact: false })).toBeVisible();
 });
+
+test('progress lives in IndexedDB and the app keeps working offline', async ({ page, context }) => {
+  await onboard(page, 'Hoa');
+  // Saved by the IndexedDB storage, not localStorage.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<boolean>((resolve) => {
+            const open = indexedDB.open('english-mastery');
+            open.onsuccess = () => {
+              const get = open.result.transaction('kv').objectStore('kv').get('em-progress');
+              get.onsuccess = () => resolve(typeof get.result?.value === 'string' && get.result.value.includes('Hoa'));
+              get.onerror = () => resolve(false);
+            };
+            open.onerror = () => resolve(false);
+          }),
+      ),
+    )
+    .toBe(true);
+  expect(await page.evaluate(() => localStorage.getItem('em-progress'))).toBeNull();
+
+  await page.goto('/settings');
+  await expect(page.getByRole('heading', { name: 'Dữ liệu ngoại tuyến' })).toBeVisible();
+  await expect(page.getByText(/Tiến độ được lưu bằng IndexedDB/)).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  // Once the service worker controls the page, the app shell, lessons and progress load offline.
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  await context.setOffline(true);
+  await page.goto('/lessons/l-a1-to-be');
+  await expect(page.getByText(/Bạn đang ngoại tuyến/)).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await page.goto('/dashboard');
+  await expect(page.getByRole('heading', { name: /Hoa/ })).toBeVisible();
+  await context.setOffline(false);
+});
+
+test('AI tutor shows an honest state when it cannot be used', async ({ page }) => {
+  await onboard(page);
+  await page.goto('/practice');
+  await page.getByRole('link', { name: /Gia sư AI/ }).click();
+  await expect(page).toHaveURL(/\/tutor$/);
+  // Guest (and, in this build, no deployed/configured AI): never a chat box that cannot work.
+  await expect(
+    page.getByRole('heading', { name: /Gia sư AI chưa được bật|Không kết nối được gia sư AI|Gia sư AI cần máy chủ|Đăng nhập để dùng gia sư AI/ }),
+  ).toBeVisible();
+  await expect(page.getByLabel('Tin nhắn cho gia sư')).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+});

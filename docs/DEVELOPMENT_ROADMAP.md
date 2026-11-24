@@ -25,7 +25,7 @@
 - [x] Database tests in PGlite: RLS with two users, constraints, trigger, idempotency (17 tests)
 - [ ] **Apply the migration to the live project and test sign-up/login end to end.** Waiting on `.env.local`
       and `supabase login` (or SQL Editor)
-- [ ] Sync of learning progress (lessons, SRS, XP), which moves to the Phase 6 sync queue
+- [x] Sync of learning progress (lessons, SRS, XP) through the Phase 6 sync queue
 
 ## Phase 3 — Learning core on real data ✅
 - [x] Content repository: bundled content first; published content from Supabase swapped in once per session;
@@ -63,16 +63,23 @@
       recognition removed (fallback path)
 
 ## Phase 6 — Offline & AI
-- [ ] Dexie storage, downloadable modules, sync queue with op IDs + conflict detection, sync status UI
-- [ ] Optional AI tutor via Supabase Edge Function, provider adapter, rate limits, graceful "unavailable" state
+- [x] Dexie (IndexedDB) storage with localStorage migration and hydration gate
+- [x] Durable sync queue: op IDs, per-account items, ordered sending, backoff, permanent-error drop, Web Locks, status UI
+- [x] Conflict-safe vocabulary sync (`sync_vocabulary`: newer wins, server copies adopted)
+- [x] Offline content cache (latest published content in IndexedDB) and Settings → Dữ liệu ngoại tuyến
+- [x] Optional AI tutor: Edge Function, provider interface + Claude adapter, rate limits, conversations,
+      AI writing review and speaking-answer review, honest "unavailable" states
+- [ ] AI-generated exercises (needs server-side validation of generated questions)
 
 ## Phase 7 — Production
 - [ ] Lighthouse audit on mobile (targets ≥ 90), accessibility review, security review
 - [ ] Cloudflare Pages + Supabase production setup (DEPLOYMENT.md), CI (typecheck, lint, test, e2e)
 
 ## Known limitations
-- RPC calls that fail (offline) are not retried until the Phase 6 queue; lessons are re-uploaded at the next sign-in,
-  but exercise attempts and review sessions made offline stay on the device only.
+- Offline activity is sent when the device reconnects, but the server dates it by arrival, so the server-side streak
+  may differ from the device's for activity synced on a later day.
+- Profile edits are written through directly (not queued); edits made offline are reconciled at the next start.
+- The AI tutor needs a deployed Edge Function and a provider key; tests use a fake provider, not a live model.
 - Exercise attempts made as a guest are not uploaded (their answers were not kept).
 - Speaking, writing and dictation earn no XP and are stored on the device only (they cannot be graded reliably yet);
   comprehension questions earn validated XP through the exercise engine.
