@@ -1,5 +1,5 @@
-import { ASSESSMENT_SKILLS, CEFR_LEVELS } from '@/types/content';
-import type { Assessment, AssessmentSkill, ContentBlock, Exercise, Lesson, Question } from '@/types/content';
+import { ACTIVITY_CATEGORIES, ASSESSMENT_SKILLS, CEFR_LEVELS, SKILLS } from '@/types/content';
+import type { ActivityCategory, Assessment, AssessmentSkill, ContentBlock, Exercise, Lesson, Question, Skill, SkillActivity } from '@/types/content';
 import type { Json, Tables } from '@/services/supabase/database.types';
 import { asCefrLevel, asExerciseSkill, asLessonCategory, asPartOfSpeech, asQuestionType } from '@/services/supabase/guards';
 import type { ContentDataset } from './dataset';
@@ -18,6 +18,7 @@ export interface ContentRows {
   grammarTopics: Tables<'grammar_topics'>[];
   assessments: Tables<'assessments'>[];
   assessmentQuestions: Tables<'assessment_questions'>[];
+  activities: Tables<'skill_activities'>[];
 }
 
 type JsonObject = { [key: string]: Json | undefined };
@@ -214,7 +215,34 @@ export function assembleDataset(rows: ContentRows): ContentDataset {
         })),
     }));
 
+  const oneOf = <T extends string>(allowed: readonly T[], value: string, what: string): T => {
+    if ((allowed as readonly string[]).includes(value)) return value as T;
+    throw new TypeError(`Unexpected ${what}: ${value}`);
+  };
+  const activities: SkillActivity[] = rows.activities
+    .filter((a) => a.is_published)
+    .map((a) => {
+      const skill = oneOf<Skill>(SKILLS, a.skill, 'skill');
+      const payload = asObject(a.payload, `payload of ${a.id}`);
+      const base = {
+        id: a.id,
+        skill,
+        level: asCefrLevel(a.level_id),
+        category: oneOf<ActivityCategory>(ACTIVITY_CATEGORIES, a.category, 'activity category'),
+        title: a.title,
+        titleVi: a.title_vi,
+        description: a.description,
+        order: a.sort_order,
+      };
+      // Listening/reading link their comprehension exercise through a real foreign key.
+      const exercise = skill === 'listening' || skill === 'reading' ? { exerciseId: a.exercise_id ?? '' } : {};
+      // The seed generator writes exactly the type-specific fields; the DB check guarantees an object.
+      return { ...payload, ...base, ...exercise } as unknown as SkillActivity;
+    })
+    .sort((x, y) => SKILLS.indexOf(x.skill) - SKILLS.indexOf(y.skill) || levelIdx(x.level) - levelIdx(y.level) || x.order - y.order);
+
   return {
+    activities,
     assessments,
     levels: [...rows.levels]
       .sort((a, b) => a.sort_order - b.sort_order)

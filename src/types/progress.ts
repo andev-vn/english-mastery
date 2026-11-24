@@ -34,7 +34,7 @@ export interface ReviewCard {
   updatedAt?: string;
 }
 
-export type ActivityKind = 'lesson' | 'exercise' | 'review';
+export type ActivityKind = 'lesson' | 'exercise' | 'review' | 'skill';
 
 export interface ActivityEntry {
   id: string;
@@ -78,3 +78,24 @@ export interface AssessmentRecord {
   skillScores: Partial<Record<AssessmentSkill, number>>;
   completedAt: string;
 }
+
+/** Completion of a listening/speaking/reading/writing activity on this device. */
+export interface SkillActivityProgress {
+  completedAt: string;
+  /** Best score where one exists (dictation accuracy, speaking coverage), 0–100. */
+  bestScore?: number;
+}
+
+/** A saved piece of writing (draft or submitted). */
+export interface WritingDraft {
+  text: string;
+  updatedAt: string;
+}
+
+export interface JournalEntry {
+  id: string;
+  /** Local day (YYYY-MM-DD). */
+  day: string;
+  text: string;
+}
+

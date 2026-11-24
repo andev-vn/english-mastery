@@ -7,6 +7,8 @@ import type {
   Lesson,
   LevelInfo,
   Module,
+  Skill,
+  SkillActivity,
   VocabularyEntry,
   VocabularyTopic,
 } from '@/types/content';
@@ -34,6 +36,8 @@ export interface ContentRepository {
   getExercise(exerciseId: string): Promise<Exercise | undefined>;
   getGrammarTopics(): Promise<GrammarTopic[]>;
   getAssessment(assessmentId: string): Promise<Assessment | undefined>;
+  getActivities(skill?: Skill): Promise<SkillActivity[]>;
+  getActivity(activityId: string): Promise<SkillActivity | undefined>;
 }
 
 export type ContentSource = 'bundled' | 'remote';
@@ -120,6 +124,12 @@ export const contentRepository: ContentRepository = {
   },
   async getAssessment(assessmentId) {
     return (await dataset()).assessments.find((a) => a.id === assessmentId);
+  },
+  async getActivities(skill) {
+    return (await dataset()).activities.filter((a) => !skill || a.skill === skill);
+  },
+  async getActivity(activityId) {
+    return (await dataset()).activities.find((a) => a.id === activityId);
   },
 };
 

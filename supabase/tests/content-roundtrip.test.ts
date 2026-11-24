@@ -44,6 +44,7 @@ beforeAll(async () => {
     grammarTopics: await rows('grammar_topics'),
     assessments: await rows('assessments'),
     assessmentQuestions: await rows('assessment_questions'),
+    activities: await rows('skill_activities'),
   };
   fromDb = assembleDataset(contentRows);
   bundled = await loadBundledDataset();
@@ -80,6 +81,11 @@ describe('content round-trip through Postgres', () => {
     expect(fromDb.grammarTopics).toEqual(bundled.grammarTopics);
   });
 
+  it('skill activities (listening, speaking, reading, writing)', () => {
+    expect(fromDb.activities).toEqual(bundled.activities);
+    expect(new Set(fromDb.activities.map((a) => a.skill)).size).toBe(4);
+  });
+
   it('assessments, including listening audio text', () => {
     expect(fromDb.assessments).toEqual(bundled.assessments);
     expect(fromDb.assessments[0]?.questions.some((q) => q.audioText)).toBe(true);
@@ -102,6 +108,7 @@ describe('assembleDataset validation', () => {
         grammarTopics: [],
         assessments: [],
         assessmentQuestions: [],
+        activities: [],
       }),
     ).toThrow(/Unexpected CEFR level/);
   });

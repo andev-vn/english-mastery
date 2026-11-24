@@ -65,7 +65,9 @@ src/
 
 `/placement-test` (focus layout) runs the placement test; `/assessments` (App layout) shows results history.
 
-Planned (later phases): `/listening`, `/speaking`, `/reading`, `/writing`.
+`/listening`, `/speaking`, `/reading`, `/writing` (App layout) list skill activities; `/<skill>/:activityId` (focus layout)
+runs one; `/developer` collects Developer English lessons and activities. Comprehension questions open
+`/practice/:exerciseId?from=/<skill>/<id>` and return to the activity.
 They are intentionally not registered yet so the app has no placeholder screens.
 
 ## Progress rules
@@ -77,6 +79,8 @@ They are intentionally not registered yet so the app has no placeholder screens.
 - Lesson availability: levels ≤ learner level + 1 are open; higher levels unlock sequentially per module.
 - Signed-in learners: the same rules are enforced on the server by the progress RPCs (server-side grading; review XP
   capped at 120 per day). The device shows its own values merged with the server's, never lowering either.
+- Skill activities: speaking, writing and dictation log study time (streak) but award no XP; their feedback is
+  rule/keyword based and labelled as such in the UI.
 - Placement estimate: a level is mastered at ≥ 75 % correct; the estimate is the level after the highest consecutive
   mastered level (A1 if none, C2 if all).
 

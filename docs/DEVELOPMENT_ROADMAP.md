@@ -50,12 +50,17 @@
 - [x] Parity tests: SQL grader vs TypeScript grader on every exercise question; SQL placement scoring vs `scorePlacement()`
 - [ ] Not yet verified with a real signed-in account (needs a test sign-up with a real inbox)
 
-## Phase 5 — Language skills
-- [ ] Listening (audio player, speed, transcript, translation, dictation)
-- [ ] Speaking (Web Speech API with capability detection + text fallback)
-- [ ] Reading lessons with highlighted vocabulary
-- [ ] Writing prompts with rule-based feedback
-- [ ] More Developer English modules (APIs, Git, interviews) across levels
+## Phase 5 — Language skills ✅
+- [x] 20 skill activities (4 listening, 6 speaking, 4 reading, 6 writing), A1–B2, in `skill_activities` (migration 5)
+- [x] Listening: speech-synthesis playback with two voices, speed, line replay, transcript/translation, vocabulary
+      highlights, comprehension questions (exercise engine + server grading), dictation with LCS word alignment
+- [x] Speaking: Web Speech recognition with capability detection and clear error messages; typed fallback; partner
+      lines read aloud; keyword coverage vs suggested answer (explicitly not pronunciation scoring)
+- [x] Reading: per-paragraph translation, tap-to-define vocabulary, comprehension questions
+- [x] Writing: rule-based feedback (`src/lib/writingFeedback.ts`), checklists, sample answers, autosaved drafts, journal
+- [x] Developer English hub (`/developer`): stand-up, bug explanation, Java/backend interviews, bug report, PR description, README, postmortem
+- [x] Tests: library units, fake SpeechRecognition hook tests, sample answers must pass their own checks, E2E with
+      recognition removed (fallback path)
 
 ## Phase 6 — Offline & AI
 - [ ] Dexie storage, downloadable modules, sync queue with op IDs + conflict detection, sync status UI
@@ -69,6 +74,10 @@
 - RPC calls that fail (offline) are not retried until the Phase 6 queue; lessons are re-uploaded at the next sign-in,
   but exercise attempts and review sessions made offline stay on the device only.
 - Exercise attempts made as a guest are not uploaded (their answers were not kept).
+- Speaking, writing and dictation earn no XP and are stored on the device only (they cannot be graded reliably yet);
+  comprehension questions earn validated XP through the exercise engine.
+- Listening audio is browser speech synthesis; voice quality depends on the OS. Speech recognition is unavailable in
+  Firefox; in Chrome audio is processed by Google's recognition service.
 - Review XP on the server is trust-bounded (2 XP per recalled card, max 120/day) because review state is client-writable.
 - Seed content is a representative sample, not a full curriculum.
 - `npm audit` reports moderate advisories in `glob`/`minimatch` pulled in by `workbox-build` (build-time only, not shipped to users).

@@ -715,6 +715,69 @@ export type Database = {
           },
         ]
       }
+      skill_activities: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          exercise_id: string | null
+          id: string
+          is_published: boolean
+          level_id: string
+          payload: Json
+          skill: string
+          sort_order: number
+          title: string
+          title_vi: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string
+          exercise_id?: string | null
+          id: string
+          is_published?: boolean
+          level_id: string
+          payload: Json
+          skill: string
+          sort_order?: number
+          title: string
+          title_vi: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          exercise_id?: string | null
+          id?: string
+          is_published?: boolean
+          level_id?: string
+          payload?: Json
+          skill?: string
+          sort_order?: number
+          title?: string
+          title_vi?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_activities_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_activities_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "cefr_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_sessions: {
         Row: {
           client_op_id: string

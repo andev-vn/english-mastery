@@ -4,7 +4,17 @@ import { toDayKey } from '@/lib/date';
 import { uid } from '@/lib/cn';
 import { createCard, isDue, scheduleReview, type ReviewGrade } from '@/lib/srs';
 import { exerciseXp, XP_LESSON_COMPLETE, XP_PER_DUE_REVIEW } from '@/lib/xp';
-import type { ActivityEntry, AssessmentRecord, ExerciseAttempt, LearnerProfile, LessonProgress, ReviewCard } from '@/types/progress';
+import type {
+  ActivityEntry,
+  AssessmentRecord,
+  ExerciseAttempt,
+  JournalEntry,
+  LearnerProfile,
+  LessonProgress,
+  ReviewCard,
+  SkillActivityProgress,
+  WritingDraft,
+} from '@/types/progress';
 
 /**
  * Local (guest) learning progress.
@@ -16,6 +26,12 @@ export interface ProgressState {
   attempts: ExerciseAttempt[];
   /** Assessment history, newest first. */
   assessmentResults: AssessmentRecord[];
+  /** Completed listening/speaking/reading/writing activities. */
+  activityProgress: Record<string, SkillActivityProgress>;
+  /** Writing drafts by activity id (autosaved). */
+  writingDrafts: Record<string, WritingDraft>;
+  /** Daily journal entries, newest first. */
+  journal: JournalEntry[];
   cards: Record<string, ReviewCard>;
   /** Words removed on this device (wordId → ISO time), so a sync cannot bring them back. */
   removedWords: Record<string, string>;
@@ -47,6 +63,14 @@ export interface ProgressState {
   finishReviewSession: (input: { reviewed: number; xp: number; durationSeconds: number }) => void;
   recordAssessment: (record: AssessmentRecord) => void;
   /**
+   * Marks a skill activity as practised: logs study time for the streak. No XP — speaking and
+   * writing cannot be graded reliably yet, and dictation is self-practice (see docs/ARCHITECTURE.md).
+   */
+  completeActivity: (input: { id: string; title: string; minutes: number; score?: number }) => void;
+  saveWritingDraft: (activityId: string, text: string) => void;
+  addJournalEntry: (text: string) => void;
+  deleteJournalEntry: (id: string) => void;
+  /**
    * Merges the account's validated progress into this device (never lowers local values):
    * completed lessons are added, XP and per-day minutes/XP take the higher of the two.
    */
@@ -64,6 +88,9 @@ const initialData = {
   lessons: {},
   attempts: [],
   assessmentResults: [],
+  activityProgress: {},
+  writingDrafts: {},
+  journal: [],
   cards: {},
   removedWords: {},
   activity: [],
@@ -222,6 +249,28 @@ export const useProgressStore = create<ProgressState>()(
             : { assessmentResults: [record, ...s.assessmentResults].slice(0, 50) },
         ),
 
+      completeActivity: ({ id, title, minutes, score }) => {
+        const state = get();
+        const now = new Date();
+        const previous = state.activityProgress[id];
+        const bestScore = score === undefined ? previous?.bestScore : Math.max(score, previous?.bestScore ?? 0);
+        set({
+          activityProgress: {
+            ...state.activityProgress,
+            [id]: { completedAt: now.toISOString(), ...(bestScore === undefined ? {} : { bestScore }) },
+          },
+          ...logActivity(state, { kind: 'skill', refId: id, title, xp: 0, minutes: Math.max(1, minutes) }, now),
+        });
+      },
+
+      saveWritingDraft: (activityId, text) =>
+        set((s) => ({ writingDrafts: { ...s.writingDrafts, [activityId]: { text, updatedAt: new Date().toISOString() } } })),
+
+      addJournalEntry: (text) =>
+        set((s) => ({ journal: [{ id: uid(), day: toDayKey(), text }, ...s.journal].slice(0, 365) })),
+
+      deleteJournalEntry: (id) => set((s) => ({ journal: s.journal.filter((e) => e.id !== id) })),
+
       mergeServerProgress: (summary) =>
         set((s) => {
           const now = new Date().toISOString();
@@ -258,6 +307,9 @@ export const useProgressStore = create<ProgressState>()(
         lessons: s.lessons,
         attempts: s.attempts,
         assessmentResults: s.assessmentResults,
+        activityProgress: s.activityProgress,
+        writingDrafts: s.writingDrafts,
+        journal: s.journal,
         cards: s.cards,
         removedWords: s.removedWords,
         activity: s.activity,

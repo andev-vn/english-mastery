@@ -5,7 +5,8 @@ The UI talks only to service modules. There is no custom backend server.
 ## Content (implemented)
 
 `src/services/contentRepository.ts`: `getLevels`, `getModules`, `getModule`, `getLessons`, `getLesson`,
-`getVocabulary`, `getVocabularyTopics`, `getExercises`, `getExercise`, `getGrammarTopics`.
+`getVocabulary`, `getVocabularyTopics`, `getExercises`, `getExercise`, `getGrammarTopics`, `getAssessment`,
+`getActivities(skill?)`, `getActivity`.
 
 Strategy: **bundled first, Supabase in the background.**
 1. Reads are served from the bundled dataset (`services/content/dataset.ts`, lazily imported, precached by the service worker).
